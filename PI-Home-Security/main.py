@@ -57,7 +57,7 @@ away_mode_zones = []
 mode = "away"
 schedule_id_counter = 0
 current_zone_pins = []
-state_lock = threading.Lock()  # Renamed for clarity
+lock = threading.Lock()
 executed_schedules_today = set()
 schedule_runner_active = True
 alarm_triggered = False
@@ -79,7 +79,7 @@ def free_pins(pins):
 
 def setup_zone_pins(new_pins):
     global current_zone_pins, zone_state, zone_armed
-    with state_lock:
+    with lock:
         free_pins(current_zone_pins)
         current_zone_pins[:] = new_pins
         num_zones = len(current_zone_pins)
@@ -97,7 +97,7 @@ def setup_zone_pins(new_pins):
                 logger.error(f"[GPIO INPUT ERROR] Pin {p}: {e}")
 
 def setup_relay_pins():
-    with state_lock:
+    with lock:
         free_pins(RELAY_PINS)
         for pin in RELAY_PINS:
             try:
@@ -110,8 +110,8 @@ def setup_relay_pins():
 # --- Configuration Management ---
 def save_config():
     try:
-        with state_lock:
-            config_data = {
+        with open(CONFIG_FILE, "w") as f:
+            json.dump({
                 "pin_layout": pin_layout,
                 "zone_labels": zone_labels,
                 "zone_ding_unarmed": zone_ding_unarmed,
@@ -119,12 +119,8 @@ def save_config():
                 "away_mode_zones": away_mode_zones,
                 "schedules": schedules,
                 "mode": mode,
-                "armed": armed,
-                "schedule_id_counter": schedule_id_counter
-            }
-            
-        with open(CONFIG_FILE, "w") as f:
-            json.dump(config_data, f, indent=4)
+                "armed": armed  # Save armed state
+            }, f, indent=4)
         logger.info("[CONFIG] Configuration saved successfully.")
     except Exception as e:
         logger.error(f"[CONFIG] Save error: {e}")
@@ -141,26 +137,23 @@ def load_config():
 
     if not os.path.exists(CONFIG_FILE):
         logger.info(f"[CONFIG] {CONFIG_FILE} not found. Creating default configuration.")
-        with state_lock:
-            pin_layout.update(default_pin_layout)
-            zone_labels[:] = default_zone_labels
-            zone_ding_unarmed[:] = []
-            home_mode_zones[:] = default_home_mode_zones
-            away_mode_zones[:] = default_away_mode_zones
-            schedules[:] = []
-            schedule_id_counter = 0
-            mode = "away"
-            armed = False
-            pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
-            setup_zone_pins(pins)
+        pin_layout.update(default_pin_layout)
+        zone_labels[:] = default_zone_labels
+        zone_ding_unarmed[:] = []
+        home_mode_zones[:] = default_home_mode_zones
+        away_mode_zones[:] = default_away_mode_zones
+        schedules[:] = []
+        schedule_id_counter = 0
+        mode = "away"
+        armed = False
+        pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
+        setup_zone_pins(pins)
         save_config()
         return
 
     try:
         with open(CONFIG_FILE, "r") as f:
             data = json.load(f)
-            
-        with state_lock:
             pin_layout.update(data.get("pin_layout", default_pin_layout))
             loaded_zone_labels = data.get("zone_labels", default_zone_labels)
             zone_labels[:] = loaded_zone_labels
@@ -171,8 +164,9 @@ def load_config():
             away_mode_zones[:] = data.get("away_mode_zones", [])
             schedules[:] = data.get("schedules", [])
             mode = data.get("mode", "away")
-            armed = data.get("armed", False)
-            schedule_id_counter = data.get("schedule_id_counter", max([s['id'] for s in schedules]) + 1 if schedules else 0)
+            armed = data.get("armed", False)  # Load armed state
+
+            schedule_id_counter = max([s['id'] for s in schedules]) + 1 if schedules else 0
 
             pins_to_setup = []
             for i in range(num_loaded_zones):
@@ -188,29 +182,28 @@ def load_config():
                         pin_layout[str(i)] = 0
 
             setup_zone_pins(pins_to_setup)
-            
-            if mode == "home":
-                zone_armed[:] = [True if i in home_mode_zones else False for i in range(len(zone_state))]
-            else:
-                zone_armed[:] = [True if i in away_mode_zones else False for i in range(len(zone_state))]
+            with lock:
+                if mode == "home":
+                    zone_armed[:] = [True if i in home_mode_zones else False for i in range(len(zone_state))]
+                else:
+                    zone_armed[:] = [True if i in away_mode_zones else False for i in range(len(zone_state))]
                 
-        logger.info("[CONFIG] Configuration loaded successfully.")
+            logger.info("[CONFIG] Configuration loaded successfully.")
     except Exception as e:
         logger.error(f"[CONFIG] Load error: {e}. Reverting to default configuration.")
-        with state_lock:
-            pin_layout.clear()
-            for i in range(default_num_zones):
-                pin_layout[str(i)] = DEFAULT_ZONE_PINS[i]
-            zone_labels[:] = default_zone_labels
-            zone_ding_unarmed[:] = []
-            home_mode_zones[:] = default_home_mode_zones
-            away_mode_zones[:] = default_away_mode_zones
-            schedules[:] = []
-            schedule_id_counter = 0
-            mode = "away"
-            armed = False
-            pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
-            setup_zone_pins(pins)
+        pin_layout.clear()
+        for i in range(default_num_zones):
+            pin_layout[str(i)] = DEFAULT_ZONE_PINS[i]
+        zone_labels[:] = default_zone_labels
+        zone_ding_unarmed[:] = []
+        home_mode_zones[:] = default_home_mode_zones
+        away_mode_zones[:] = default_away_mode_zones
+        schedules[:] = []
+        schedule_id_counter = 0
+        mode = "away"
+        armed = False
+        pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
+        setup_zone_pins(pins)
         save_config()
 
 setup_relay_pins()
@@ -219,7 +212,7 @@ load_config()
 # --- Background Threads ---
 def poll_zones():
     while True:
-        with state_lock:
+        with lock:
             num_current_zones = len(current_zone_pins)
             for i in range(num_current_zones):
                 p = current_zone_pins[i]
@@ -243,7 +236,7 @@ def alarm_watcher():
             current_triggered_by_armed_zone = False
             current_relay_output_state = GPIO.LOW
 
-            with state_lock:
+            with lock:
                 for i, tripped in enumerate(zone_state):
                     if i < len(zone_armed) and zone_armed[i] and tripped:
                         current_triggered_by_armed_zone = True
@@ -331,12 +324,12 @@ def schedule_runner():
         current_day = now.tm_mday
 
         if current_day != last_checked_day:
-            with state_lock:
+            with lock:
                 executed_schedules_today.clear()
                 logger.info(f"[SCHEDULE] Cleared executed schedules for the new day (Day {current_day}).")
             last_checked_day = current_day
 
-        with state_lock:
+        with lock:
             for sched in schedules:
                 if sched['time'] == current_time_str:
                     if sched['repeat'] or sched['id'] not in executed_schedules_today:
@@ -354,13 +347,9 @@ def schedule_runner():
         time.sleep(30)
 
 # Start background threads
-poll_thread = threading.Thread(target=poll_zones, daemon=True)
-alarm_thread = threading.Thread(target=alarm_watcher, daemon=True)
-schedule_thread = threading.Thread(target=schedule_runner, daemon=True)
-
-poll_thread.start()
-alarm_thread.start()
-schedule_thread.start()
+threading.Thread(target=poll_zones, daemon=True).start()
+threading.Thread(target=alarm_watcher, daemon=True).start()
+threading.Thread(target=schedule_runner, daemon=True).start()
 
 # --- Flask Routes ---
 @app.route('/')
@@ -369,7 +358,7 @@ def index():
 
 @app.route('/api/zone_status')
 def zone_status():
-    with state_lock:
+    with lock:
         serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
         return jsonify({
             'armed': armed,
@@ -381,7 +370,7 @@ def zone_status():
             'home_mode_zones': home_mode_zones,
             'away_mode_zones': away_mode_zones,
             'zone_ding_unarmed': zone_ding_unarmed,
-            'system_time': datetime.datetime.now().isoformat()
+            'system_time': datetime.datetime.now().isoformat()  # Add system time
         })
 
 @app.route('/api/arm', methods=['POST'])
@@ -393,9 +382,9 @@ def api_arm():
     if not isinstance(new_armed_state, bool):
         return jsonify({'error': 'Invalid request. "armed" (boolean) is required.'}), 400
 
-    with state_lock:
+    with lock:
         armed = new_armed_state
-        save_config()
+        save_config()  # Save state immediately
         logger.info(f"System {'ARMED' if armed else 'DISARMED'} via API.")
     return ('', 204)
 
@@ -408,7 +397,7 @@ def api_zone_arm():
     if not isinstance(idx, int) or not isinstance(status, bool):
         return jsonify({'error': 'Invalid request. "index" (int) and "armed" (boolean) are required.'}), 400
 
-    with state_lock:
+    with lock:
         if 0 <= idx < len(zone_armed):
             zone_armed[idx] = status
             logger.info(f"Zone {idx} ('{zone_labels[idx]}') set to {'ARMED' if status else 'DISARMED'} for detection.")
@@ -424,7 +413,7 @@ def api_set_labels():
     if not isinstance(labs, list):
         return jsonify({'error': 'Invalid labels format (expected list of strings).'}), 400
 
-    with state_lock:
+    with lock:
         current_num_zones = len(zone_labels)
         new_num_zones = len(labs)
 
@@ -482,7 +471,7 @@ def api_set_ding_zones():
     if not isinstance(ding_zones, list):
         return jsonify({'error': 'Invalid ding_zones format (expected list of integers)'}), 400
 
-    with state_lock:
+    with lock:
         valid_ding_zones = [idx for idx in ding_zones if isinstance(idx, int) and 0 <= idx < len(zone_labels)]
         zone_ding_unarmed[:] = valid_ding_zones
         save_config()
@@ -498,7 +487,7 @@ def api_set_mode():
     if new_mode not in ["home", "away"]:
         return jsonify({'error': 'Invalid mode. Must be "home" or "away"'}), 400
 
-    with state_lock:
+    with lock:
         mode = new_mode
         if mode == "home":
             zone_armed[:] = [True if i in home_mode_zones else False for i in range(len(zone_state))]
@@ -518,7 +507,7 @@ def api_set_mode_zones():
     if not isinstance(home_config, list) or not isinstance(away_config, list):
         return jsonify({'error': 'Invalid mode zone configuration format (expected lists of integers)'}), 400
 
-    with state_lock:
+    with lock:
         home_mode_zones[:] = [idx for idx in home_config if isinstance(idx, int) and 0 <= idx < len(zone_labels)]
         away_mode_zones[:] = [idx for idx in away_config if isinstance(idx, int) and 0 <= idx < len(zone_labels)]
         save_config()
@@ -552,7 +541,7 @@ def clear_alarm():
 
 @app.route('/api/schedules')
 def api_schedules():
-    with state_lock:
+    with lock:
         return jsonify(schedules)
 
 @app.route('/api/add_schedule', methods=['POST'])
@@ -566,10 +555,10 @@ def api_add_schedule():
 
     if action not in ['arm', 'disarm'] or not time_str or not isinstance(time_str, str) or not isinstance(repeat, bool):
         return jsonify({'error': 'Invalid schedule data. Requires "action" (arm/disarm), "time" (HH:MM), and "repeat" (boolean).'}), 400
-    if not (isinstance(zone, int) or zone < -1):
+    if not (isinstance(zone, int) and zone is not None):
         return jsonify({'error': 'Invalid zone index provided for schedule context.'}), 400
 
-    with state_lock:
+    with lock:
         new_schedule = {
             'id': schedule_id_counter,
             'zone': zone,
@@ -591,7 +580,7 @@ def api_delete_schedule():
     if not isinstance(sched_id, int):
         return jsonify({'error': 'Schedule ID (integer) is required.'}), 400
 
-    with state_lock:
+    with lock:
         global schedules
         initial_len = len(schedules)
         schedules = [s for s in schedules if s['id'] != sched_id]
@@ -614,16 +603,14 @@ def api_set_pin_layout():
         try:
             zone_idx = int(k)
             pin_num = int(v)
-            new_pin_layout_received[str(zone_idx)] = pin_num
+            if 0 <= zone_idx < len(zone_labels):
+                new_pin_layout_received[str(zone_idx)] = pin_num
+            else:
+                logger.warning(f"Attempted to set pin for non-existent zone index {zone_idx}. Skipping.")
         except ValueError:
             return jsonify({'error': f'Invalid pin data for key "{k}": value "{v}". Expected integers.'}), 400
 
-    with state_lock:
-        # Validate zone indices
-        valid_zone_indices = [int(k) for k in new_pin_layout_received.keys() if int(k) < len(zone_labels)]
-        if len(valid_zone_indices) != len(new_pin_layout_received):
-            return jsonify({'error': 'One or more zone indices are invalid.'}), 400
-
+    with lock:
         pin_layout.update(new_pin_layout_received)
 
         current_pins_for_setup = []
@@ -649,7 +636,7 @@ def system_info():
     return jsonify({
         'system_time': datetime.datetime.now().isoformat(),
         'zones_count': len(zone_labels),
-        'version': '1.4.0'
+        'version': '1.3.0'
     })
 
 # --- Cleanup on Exit ---
@@ -670,9 +657,8 @@ if __name__ == '__main__':
     
     # Create flag files if they don't exist
     for flag_file in ['ding.flag', 'alarm.flag']:
-        flag_path = os.path.join('static', flag_file)
-        if not os.path.exists(flag_path):
-            with open(flag_path, 'w') as f:
+        if not os.path.exists(f'static/{flag_file}'):
+            with open(f'static/{flag_file}', 'w') as f:
                 f.write('0')
 
     app.run(host='0.0.0.0', port=5000, debug=False)

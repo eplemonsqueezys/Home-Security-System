@@ -256,6 +256,22 @@
   .status-armed { background: var(--danger); }
   .status-disarmed { background: var(--success); }
   
+  /* Audio button */
+  #enableAudioButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 10px 15px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  
   .audio-controls {
     position: fixed;
     bottom: 20px;
@@ -278,18 +294,6 @@
   .audio-btn.mute {
     background: #dc3545;
   }
-  
-  .config-saving {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #ffc107;
-    color: #333;
-    padding: 10px 15px;
-    border-radius: 5px;
-    display: none;
-    z-index: 1000;
-  }
 </style>
 </head>
 <body>
@@ -303,8 +307,6 @@
   <button onclick="show('pinlayout')">Pin Layout</button>
 </nav>
 
-<div class="config-saving" id="savingIndicator">Saving configuration...</div>
-
 <div class="content">
   <div id="status">
     <div class="global-control">
@@ -316,7 +318,6 @@
       <p><span class="status-indicator" id="armedIndicator"></span> System Status: <span id="systemStatusText">Loading...</span></p>
       <p>Mode: <span id="modeDisplay">Loading...</span></p>
       <p>Last Updated: <span id="lastUpdated">Never</span></p>
-      <p>Zones: <span id="zonesCount">0</span></p>
     </div>
   </div>
 
@@ -438,7 +439,6 @@ let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 let audioEnabled = true;
 let lastUpdateTime = new Date();
-let isSaving = false;
 
 // Create audio elements
 const alarmAudio = new Audio('/static/alarm.mp3');
@@ -453,8 +453,6 @@ const systemStatusText = document.getElementById('systemStatusText');
 const modeDisplay = document.getElementById('modeDisplay');
 const lastUpdatedEl = document.getElementById('lastUpdated');
 const muteBtn = document.getElementById('muteBtn');
-const zonesCountEl = document.getElementById('zonesCount');
-const savingIndicator = document.getElementById('savingIndicator');
 
 // Test buttons
 document.getElementById('testAlarmBtn').addEventListener('click', () => {
@@ -483,8 +481,6 @@ muteBtn.addEventListener('click', () => {
 });
 
 async function fetchAll() {
-  if (isSaving) return;
-  
   try {
     const response = await fetch('/api/zone_status');
     if (!response.ok) throw new Error('Network response was not ok');
@@ -500,10 +496,11 @@ async function fetchAll() {
     awayModeZones = js.away_mode_zones;
     zoneDingUnarmed = js.zone_ding_unarmed;
     
+    schedules = await (await fetch('/api/schedules')).json();
+    
     // Update last updated time
     lastUpdateTime = new Date();
     lastUpdatedEl.textContent = lastUpdateTime.toLocaleTimeString();
-    zonesCountEl.textContent = zoneLabels.length;
     
     render();
     renderOptions();
@@ -719,7 +716,6 @@ gbtn.addEventListener('click', async () => {
 });
 
 async function saveLabels(){
-  showSaving();
   const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== '');
   if (newLabels.length === 0) {
       alert('Please enter at least one label.');
@@ -730,12 +726,11 @@ async function saveLabels(){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({labels: newLabels})
   });
-  hideSaving();
+  alert('Zone labels saved!');
   fetchAll();
 }
 
 async function saveDingZones(){
-  showSaving();
   const dingZones = [];
   document.querySelectorAll('#ding-zones-list input[type="checkbox"]').forEach(cb => {
     if (cb.checked) dingZones.push(parseInt(cb.value));
@@ -746,23 +741,20 @@ async function saveDingZones(){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ding_zones: dingZones})
   });
-  hideSaving();
+  alert('Ding zones saved!');
   fetchAll();
 }
 
 async function setMode(newMode){
-  showSaving();
   await fetch('/api/set_mode', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({mode: newMode})
   });
-  hideSaving();
   fetchAll();
 }
 
 async function saveHomeAwayZones(){
-  showSaving();
   const homeZones = [];
   document.querySelectorAll('#homezones-list input[type="checkbox"]').forEach(cb => {
     if (cb.checked) homeZones.push(parseInt(cb.value));
@@ -778,12 +770,11 @@ async function saveHomeAwayZones(){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({home: homeZones, away: awayZones})
   });
-  hideSaving();
+  alert('Mode configurations saved!');
   fetchAll();
 }
 
 async function addSched(){
-  showSaving();
   const zoneIndex = parseInt(document.getElementById('szone').value);
   const action = document.getElementById('sact').value;
   const time = document.getElementById('stime').value;
@@ -804,25 +795,21 @@ async function addSched(){
       repeat: repeat
     })
   });
-  hideSaving();
   fetchAll();
 }
 
 async function delSched(id){
   if (!confirm('Are you sure you want to delete this schedule?')) return;
   
-  showSaving();
   await fetch('/api/delete_schedule', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({id: id})
   });
-  hideSaving();
   fetchAll();
 }
 
 async function savePinLayout(){
-  showSaving();
   const newPinLayout = {};
   
   for (let i = 0; i < zoneLabels.length; i++) {
@@ -842,22 +829,8 @@ async function savePinLayout(){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(newPinLayout)
   });
-  hideSaving();
+  alert('Pin layout saved!');
   fetchAll();
-}
-
-function showSaving() {
-  isSaving = true;
-  savingIndicator.style.display = 'block';
-  setTimeout(() => {
-    savingIndicator.style.display = 'none';
-    isSaving = false;
-  }, 2000);
-}
-
-function hideSaving() {
-  savingIndicator.style.display = 'none';
-  isSaving = false;
 }
 
 // Initialize
