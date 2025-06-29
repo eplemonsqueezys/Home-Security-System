@@ -1,0 +1,32 @@
+{
+    "pin_layout": {
+        "0": 4,
+        "1": 26,
+        "2": 18,
+        "3": 27,
+        "4": 22,
+        "5": 23,
+        "6": 24,
+        "7": 1
+    },
+    "zone_labels": [
+        "Zone 555",
+        "Zone 2",
+        "Zone 3",
+        "Front Doo",
+        "Zone 5",
+        "Zone 6",
+        "Zone 7",
+        "Zone 8"
+    ],
+    "zone_ding_unarmed": [
+        3
+    ],
+    "home_mode_zones": [],
+    "away_mode_zones": [],
+    "sms_numbers": [
+        "7656949678@tmomail.net"
+    ],
+    "schedules": [],
+    "mode": "away"
+}
