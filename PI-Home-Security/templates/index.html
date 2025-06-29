@@ -242,7 +242,7 @@ function show(id){
 
 function render(){
   const btn = document.getElementById('gbtn');
-  btn.textContent = (armed ? 'Disable System' : 'Enable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
+  btn.textContent = (armed ? 'Enable System' : 'Disable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
   btn.className = armed ? 'arm-btn disarm' : 'arm-btn save';
 
   const zonesEl = document.getElementById('zones');

@@ -180,7 +180,7 @@ def load_config():
         schedules[:] = []
         schedule_id_counter = 0
         mode = "away"
-        armed = False
+        armed = True
         pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
         setup_zone_pins(pins)
         save_config()
