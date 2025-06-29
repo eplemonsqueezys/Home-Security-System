@@ -555,7 +555,7 @@ def api_add_schedule():
 
     if action not in ['arm', 'disarm'] or not time_str or not isinstance(time_str, str) or not isinstance(repeat, bool):
         return jsonify({'error': 'Invalid schedule data. Requires "action" (arm/disarm), "time" (HH:MM), and "repeat" (boolean).'}), 400
-    if not (isinstance(zone, int) and zone is not None:
+    if not (isinstance(zone, int) and zone is not None):
         return jsonify({'error': 'Invalid zone index provided for schedule context.'}), 400
 
     with lock:
