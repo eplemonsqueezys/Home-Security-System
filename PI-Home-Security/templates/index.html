@@ -139,6 +139,7 @@ let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
 
+
 async function fetchAll() {
   try {
     const js = await (await fetch('/api/zone_status')).json();
