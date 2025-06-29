@@ -433,49 +433,52 @@ def api_set_labels():
 
         zone_labels[:] = labs
 
-        if new_num_zones > current_num_zones:
-            extension_length = new_num_zones - current_num_zones
-            zone_state.extend([False] * extension_length)
-            zone_armed.extend([True] * extension_length)
-            for i in range(current_num_zones, new_num_zones):
-                if i < len(DEFAULT_ZONE_PINS):
-                    pin_layout[str(i)] = DEFAULT_ZONE_PINS[i]
+        # Only reconfigure GPIO if number of zones changes
+        if new_num_zones != current_num_zones:
+            if new_num_zones > current_num_zones:
+                extension_length = new_num_zones - current_num_zones
+                zone_state.extend([False] * extension_length)
+                zone_armed.extend([True] * extension_length)
+                for i in range(current_num_zones, new_num_zones):
+                    if i < len(DEFAULT_ZONE_PINS):
+                        pin_layout[str(i)] = DEFAULT_ZONE_PINS[i]
+                    else:
+                        pin_layout[str(i)] = 0
+                home_mode_zones.extend(range(current_num_zones, new_num_zones))
+                away_mode_zones.extend(range(current_num_zones, new_num_zones))
+            elif new_num_zones < current_num_zones:
+                zone_state[:] = zone_state[:new_num_zones]
+                zone_armed[:] = zone_armed[:new_num_zones]
+                zone_ding_unarmed[:] = [idx for idx in zone_ding_unarmed if idx < new_num_zones]
+                home_mode_zones[:] = [idx for idx in home_mode_zones if idx < new_num_zones]
+                away_mode_zones[:] = [idx for idx in away_mode_zones if idx < new_num_zones]
+
+            new_pin_layout_dict = {}
+            for i in range(new_num_zones):
+                if str(i) in pin_layout:
+                    new_pin_layout_dict[str(i)] = pin_layout[str(i)]
+                elif i < len(DEFAULT_ZONE_PINS):
+                    new_pin_layout_dict[str(i)] = DEFAULT_ZONE_PINS[i]
                 else:
-                    pin_layout[str(i)] = 0
-            home_mode_zones.extend(range(current_num_zones, new_num_zones))
-            away_mode_zones.extend(range(current_num_zones, new_num_zones))
-        elif new_num_zones < current_num_zones:
-            zone_state[:] = zone_state[:new_num_zones]
-            zone_armed[:] = zone_armed[:new_num_zones]
-            zone_ding_unarmed[:] = [idx for idx in zone_ding_unarmed if idx < new_num_zones]
-            home_mode_zones[:] = [idx for idx in home_mode_zones if idx < new_num_zones]
-            away_mode_zones[:] = [idx for idx in away_mode_zones if idx < new_num_zones]
+                    new_pin_layout_dict[str(i)] = 0
+            pin_layout.clear()
+            pin_layout.update(new_pin_layout_dict)
 
-        new_pin_layout_dict = {}
-        for i in range(new_num_zones):
-            if str(i) in pin_layout:
-                new_pin_layout_dict[str(i)] = pin_layout[str(i)]
-            elif i < len(DEFAULT_ZONE_PINS):
-                new_pin_layout_dict[str(i)] = DEFAULT_ZONE_PINS[i]
-            else:
-                new_pin_layout_dict[str(i)] = 0
-        pin_layout.clear()
-        pin_layout.update(new_pin_layout_dict)
-
-        current_pins_for_setup = []
-        for i in range(new_num_zones):
-            pin = pin_layout.get(str(i))
-            if pin is not None:
-                current_pins_for_setup.append(int(pin))
-            else:
-                if i < len(DEFAULT_ZONE_PINS):
-                    current_pins_for_setup.append(DEFAULT_ZONE_PINS[i])
+            current_pins_for_setup = []
+            for i in range(new_num_zones):
+                pin = pin_layout.get(str(i))
+                if pin is not None:
+                    current_pins_for_setup.append(int(pin))
                 else:
-                    current_pins_for_setup.append(0)
+                    if i < len(DEFAULT_ZONE_PINS):
+                        current_pins_for_setup.append(DEFAULT_ZONE_PINS[i])
+                    else:
+                        current_pins_for_setup.append(0)
 
-        setup_zone_pins(current_pins_for_setup)
+            setup_zone_pins(current_pins_for_setup)
+        
         save_config()
-        logger.info(f"Zone labels and system size updated. Current zones: {len(zone_labels)}")
+        logger.info(f"Zone labels updated. Current zones: {len(zone_labels)}")
         return jsonify({
             'new_num_zones': new_num_zones,
             'pin_layout': pin_layout,
