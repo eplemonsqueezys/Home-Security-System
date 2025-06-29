@@ -54,7 +54,7 @@
 
 <div class="content">
   <div id="status">
-    <button id="gbtn" class="arm-btn">Loading...</button>
+    <button id="gbtn" class="arm-btn">Loading... (Polling ON)</button>
     <div class="zones" id="zones"></div>
   </div>
 
@@ -131,13 +131,14 @@
 <audio id="alarmAudio" loop><source src="/static/alarm.mp3" type="audio/mpeg"/></audio>
 <audio id="dingAudio"><source src="/static/ding.mp3" type="audio/mpeg"/></audio>
 
-
-
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
+
+let pollingActive = true;    // Polling ON initially
+let pollingIntervalId = null;
 
 async function fetchAll() {
   try {
@@ -153,32 +154,32 @@ async function fetchAll() {
     zoneDingUnarmed = js.zone_ding_unarmed;
 
     schedules = await (await fetch('/api/schedules')).json();
-// handle ding.flag and alarm.flag
-const [dingResponse, alarmResponse] = await Promise.all([
-  fetch('/static/ding.flag').catch(() => ({text: () => '0'})),
-  fetch('/static/alarm.flag').catch(() => ({text: () => '0'}))
-]);
 
-const [dingText, alarmText] = await Promise.all([
-  dingResponse.text(),
-  alarmResponse.text()
-]);
+    const [dingResponse, alarmResponse] = await Promise.all([
+      fetch('/static/ding.flag').catch(() => ({text: () => '0'})),
+      fetch('/static/alarm.flag').catch(() => ({text: () => '0'}))
+    ]);
 
-const dingFlag = dingText.trim() === '1';
-const alarmFlag = alarmText.trim() === '1';
+    const [dingText, alarmText] = await Promise.all([
+      dingResponse.text(),
+      alarmResponse.text()
+    ]);
 
-if (dingFlag) {
-  dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-  await fetch('/api/clear_ding');
-}
+    const dingFlag = dingText.trim() === '1';
+    const alarmFlag = alarmText.trim() === '1';
 
-if (alarmFlag) {
-  alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
-} else {
-  alarmAudio.pause();
-  alarmAudio.currentTime = 0;
-  await fetch('/api/clear_alarm');
-} 
+    if (dingFlag) {
+      dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
+      await fetch('/api/clear_ding');
+    }
+
+    if (alarmFlag) {
+      alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
+    } else {
+      alarmAudio.pause();
+      alarmAudio.currentTime = 0;
+      await fetch('/api/clear_alarm');
+    }
 
     render();
     renderOptions();
@@ -189,6 +190,42 @@ if (alarmFlag) {
     console.error("Error fetching data:", e);
   }
 }
+
+function startPolling() {
+  if (!pollingIntervalId) {
+    pollingIntervalId = setInterval(() => {
+      if (pollingActive) {
+        fetchAll();
+      }
+    }, 200);
+  }
+}
+
+function stopPolling() {
+  if (pollingIntervalId) {
+    clearInterval(pollingIntervalId);
+    pollingIntervalId = null;
+  }
+}
+
+document.getElementById('gbtn').onclick = async () => {
+  await fetch('/api/arm', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({armed: !armed})
+  });
+  fetchAll();
+
+  pollingActive = !pollingActive;
+
+  const btn = document.getElementById('gbtn');
+  // Update button text but keep the arm/disarm wording clear:
+  btn.textContent = (armed ? 'Disable System' : 'Enable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
+};
+
+// Start polling on page load
+startPolling();
+fetchAll();
 
 function show(id){
   document.querySelectorAll('nav button').forEach(button => {
@@ -204,8 +241,9 @@ function show(id){
 }
 
 function render(){
-  document.getElementById('gbtn').textContent = armed ? 'Disable System' : 'Enable System';
-  document.getElementById('gbtn').className = armed ? 'arm-btn disarm' : 'arm-btn save';
+  const btn = document.getElementById('gbtn');
+  btn.textContent = (armed ? 'Disable System' : 'Enable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
+  btn.className = armed ? 'arm-btn disarm' : 'arm-btn save';
 
   const zonesEl = document.getElementById('zones');
   zonesEl.innerHTML = '';
@@ -221,10 +259,7 @@ function render(){
     div.appendChild(btn);
     zonesEl.appendChild(div);
   });
-
-
 }
-
 
 function renderOptions(){
   const labelTextarea = document.getElementById('lab');
@@ -364,15 +399,6 @@ async function toggleZone(i){
   fetchAll();
 }
 
-document.getElementById('gbtn').onclick = async () => {
-  await fetch('/api/arm', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({armed: !armed})
-  });
-  fetchAll();
-};
-
 async function saveLabels(){
   const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== '');
   if (newLabels.length === 0) {
@@ -418,74 +444,46 @@ async function saveHomeAwayZones(){
 }
 
 async function addSched(){
-  const zoneIndex = parseInt(document.getElementById('szone').value, 10);
+  const zoneIndex = parseInt(document.getElementById('szone').value);
   const action = document.getElementById('sact').value;
   const time = document.getElementById('stime').value;
   const repeat = document.getElementById('srep').checked;
 
   if (!time) {
-    alert('Please enter a time (HH:MM) for the schedule.');
+    alert('Please select a time.');
     return;
-  }
-  if (isNaN(zoneIndex)) {
-      alert('Invalid zone selected for schedule context.');
-      return;
   }
 
   await fetch('/api/add_schedule', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      zone: zoneIndex >= 0 ? zoneIndex : null,
-      action: action,
-      time: time,
-      repeat: repeat
-    })
+    body: JSON.stringify({zone: zoneIndex, action, time, repeat})
   });
+  alert('Schedule added!');
   fetchAll();
 }
 
 async function delSched(id){
-  if (!confirm('Are you sure you want to delete this schedule?')) {
-    return;
-  }
-  await fetch('/api/delete_schedule', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({id: id})
-  });
+  await fetch(`/api/delete_schedule?id=${id}`, { method: 'DELETE' });
+  alert('Schedule deleted!');
   fetchAll();
 }
 
 async function savePinLayout(){
-  const newPinLayout = {};
-  const pinInputs = document.querySelectorAll('#plist input.pin-input');
-  let hasError = false;
-  pinInputs.forEach(input => {
-    const zoneIdx = input.id.replace('pin-', '');
-    const pinVal = parseInt(input.value, 10);
-    if (isNaN(pinVal) || pinVal < 0) {
-        alert(`Invalid pin number entered for ${zoneLabels[zoneIdx] || `Zone ${parseInt(zoneIdx)+1}`}. Please enter a non-negative number.`);
-        hasError = true;
-        return;
-    }
-    newPinLayout[zoneIdx] = pinVal;
-  });
-
-  if (hasError) return;
-
+  const newPins = [];
+  for(let i = 0; i < zoneLabels.length; i++){
+    const val = parseInt(document.getElementById(`pin-${i}`).value);
+    newPins.push(isNaN(val) ? 0 : val);
+  }
   await fetch('/api/set_pin_layout', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(newPinLayout)
+    body: JSON.stringify({pin_layout: newPins})
   });
   alert('Pin layout saved!');
   fetchAll();
 }
-
-setInterval(fetchAll, 200)  ;
-fetchAll();
 </script>
 
 </body>
-</html> 
+</html>
