@@ -48,7 +48,6 @@
   <button onclick="show('status')" class="active">Status</button>
   <button onclick="show('options')">Options</button>
   <button onclick="show('modes')">Home/Away Mode</button>
-  <button onclick="show('phones')">Phone Numbers</button>
   <button onclick="show('schedules')">Schedules</button>
   <button onclick="show('pinlayout')">Pin Layout</button>
 </nav>
@@ -86,13 +85,6 @@
         <div id="awayzones-list"></div>
     </div>
     <button onclick="saveHomeAwayZones()">Save Mode Zone Configurations</button>
-  </div>
-
-  <div id="phones" style="display:none;">
-    <h3>SMS Recipients (enter number@carrier-gateway):</h3>
-    <p>Enter one email-to-SMS gateway address per line (e.g., 5551234567@vtext.com).</p>
-    <textarea id="phone-numbers-text" rows="6" style="width:100%;"></textarea>
-    <button onclick="savePhoneNumbers()">Save SMS List</button>
   </div>
 
   <div id="schedules" style="display:none;">
@@ -143,14 +135,11 @@
 
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
-let mode, homeModeZones = [], awayModeZones = [], smsNumbers = [], zoneDingUnarmed = [];
+let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
 
 // --- Audio Playback "Unlocker" ---
-// This function attempts to play and immediately pause both audio elements
-// when the user clicks the "Enable Sound" button. This registers a user
-// interaction with the browser, allowing subsequent programmatic playback.
 document.getElementById('enableAudioButton').onclick = () => {
     alarmAudio.play().then(() => {
         alarmAudio.pause();
@@ -162,7 +151,7 @@ document.getElementById('enableAudioButton').onclick = () => {
         dingAudio.pause();
         dingAudio.currentTime = 0;
         console.log("Ding audio unlocked.");
-        document.getElementById('enableAudioButton').style.display = 'none'; // Hide button after successful unlock
+        document.getElementById('enableAudioButton').style.display = 'none';
     }).catch(e => console.warn("Could not play ding audio initially (likely browser policy):", e));
 };
 // --- End Audio Playback "Unlocker" ---
@@ -179,7 +168,6 @@ async function fetchAll() {
     mode = js.mode;
     homeModeZones = js.home_mode_zones;
     awayModeZones = js.away_mode_zones;
-    smsNumbers = js.sms_numbers;
     zoneDingUnarmed = js.zone_ding_unarmed;
 
     schedules = await (await fetch('/api/schedules')).json();
@@ -191,24 +179,20 @@ async function fetchAll() {
 
     if (flag) {
       dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-      // Clear flag so sound only plays once until the next ding event
       await fetch('/api/clear_ding');
     }
 
     render();
-    renderOptions(); // Handles labels and ding zones
+    renderOptions();
     renderModes();
-    renderPhones(); // This function will now prevent overwriting
     renderSchedules();
     fillPins();
   } catch (e) {
     console.error("Error fetching data:", e);
-    // Optionally display an error message to the user
   }
 }
 
 function show(id){
-  // Update active button styling
   document.querySelectorAll('nav button').forEach(button => {
     button.classList.remove('active');
   });
@@ -217,17 +201,14 @@ function show(id){
     activeButton.classList.add('active');
   }
 
-  // Show/hide content sections
-  ['status','options','modes','phones','schedules','pinlayout']
+  ['status','options','modes','schedules','pinlayout']
     .forEach(tab => document.getElementById(tab).style.display = (tab === id ? 'block' : 'none'));
 }
 
 function render(){
-  // Update global arm/disarm button
   document.getElementById('gbtn').textContent = armed ? 'Disarm All' : 'Arm All';
   document.getElementById('gbtn').className = armed ? 'arm-btn disarm' : 'arm-btn save';
 
-  // Render zones
   const zonesEl = document.getElementById('zones');
   zonesEl.innerHTML = '';
   zones.forEach((tripped, i) => {
@@ -243,30 +224,22 @@ function render(){
     zonesEl.appendChild(div);
   });
 
-  // Control alarm audio based on global armed state and any armed zone being tripped
   const anyArmedZoneTripped = zones.some((tripped, i) => zoneArmed[i] && tripped);
-
-  // console.log debugging (uncomment these lines to see values in browser console)
-  // console.log("Global system armed:", armed);
-  // console.log("Is any armed zone currently tripped?", anyArmedZoneTripped);
 
   if (armed && anyArmedZoneTripped) {
     alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
   } else {
     alarmAudio.pause();
-    alarmAudio.currentTime = 0; // Reset audio to start for next time
+    alarmAudio.currentTime = 0;
   }
 }
 
 function renderOptions(){
-  // Zone Labels
   const labelTextarea = document.getElementById('lab');
-  // Only update textarea value if it's not currently being edited
   if (document.activeElement !== labelTextarea) {
     labelTextarea.value = zoneLabels.join('\n');
   }
 
-  // Ding on Unarmed Trip zones
   const dingListEl = document.getElementById('ding-zones-list');
   dingListEl.innerHTML = '';
   zoneLabels.forEach((label, i) => {
@@ -276,13 +249,11 @@ function renderOptions(){
     checkbox.value = i;
     checkbox.checked = zoneDingUnarmed.includes(i);
     checkbox.onchange = () => {
-      // Update the local zoneDingUnarmed array when checkbox changes
       if (checkbox.checked) {
         if (!zoneDingUnarmed.includes(i)) zoneDingUnarmed.push(i);
       } else {
         zoneDingUnarmed = zoneDingUnarmed.filter(zoneIdx => zoneIdx !== i);
       }
-      // Keep array sorted for consistency, though not strictly necessary for functionality
       zoneDingUnarmed.sort((a,b) => a-b);
     };
     const labelEl = document.createElement('label');
@@ -295,13 +266,11 @@ function renderOptions(){
 }
 
 function renderModes(){
-  // Set current mode radio button
   const modeRadio = document.querySelector(`input[name=mode][value=${mode}]`);
   if (modeRadio) {
     modeRadio.checked = true;
   }
 
-  // Render home mode zones checkboxes
   const homeZonesListEl = document.getElementById('homezones-list');
   homeZonesListEl.innerHTML = '';
   zoneLabels.forEach((label, i) => {
@@ -326,7 +295,6 @@ function renderModes(){
     homeZonesListEl.appendChild(document.createElement('br'));
   });
 
-  // Render away mode zones checkboxes
   const awayZonesListEl = document.getElementById('awayzones-list');
   awayZonesListEl.innerHTML = '';
   zoneLabels.forEach((label, i) => {
@@ -352,28 +320,17 @@ function renderModes(){
   });
 }
 
-function renderPhones(){
-  const phoneNumberTextarea = document.getElementById('phone-numbers-text');
-  // Only update textarea value if it's not currently being edited
-  if (document.activeElement !== phoneNumberTextarea) {
-    phoneNumberTextarea.value = smsNumbers.join('\n');
-  }
-}
-
 function renderSchedules(){
   const szoneSelect = document.getElementById('szone');
-  szoneSelect.innerHTML = ''; // Clear previous options
-  // Add an option for "Global" or "N/A" if the schedule doesn't relate to a specific zone
-  szoneSelect.add(new Option("N/A (Global)", -1)); // Use -1 or null as a special value
+  szoneSelect.innerHTML = '';
+  szoneSelect.add(new Option("N/A (Global)", -1));
 
   zoneLabels.forEach((label, i) => szoneSelect.add(new Option(label, i)));
-
 
   const scheduleBody = document.getElementById('sched');
   scheduleBody.innerHTML = '';
   schedules.forEach(s => {
     const tr = scheduleBody.insertRow();
-    // Get zone label, default to "N/A (Global)" if index is out of bounds or -1
     const zoneDisplay = (s.zone !== undefined && s.zone >= 0 && s.zone < zoneLabels.length) ? zoneLabels[s.zone] : "N/A (Global)";
     tr.innerHTML = `
       <td>${zoneDisplay}</td>
@@ -387,19 +344,16 @@ function renderSchedules(){
 
 function fillPins(){
   const pinListBody = document.getElementById('plist');
-  pinListBody.innerHTML = ''; // Clear existing rows
+  pinListBody.innerHTML = '';
 
-  // Ensure zoneLabels is available to determine the number of rows
   if (!zoneLabels || zoneLabels.length === 0) {
       console.warn("No zones defined to fill pin layout.");
       return;
   }
 
-  // Create rows for each zone, even if no pin is currently assigned in pinLayout
   for (let i = 0; i < zoneLabels.length; i++) {
     const row = pinListBody.insertRow();
     const zoneLabel = zoneLabels[i];
-    // Use pinLayout value if it exists, otherwise default to 0
     const currentPin = pinLayout[i] !== undefined ? pinLayout[i] : 0;
 
     row.innerHTML = `
@@ -415,7 +369,7 @@ async function toggleZone(i){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({index: i, armed: !zoneArmed[i]})
   });
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 document.getElementById('gbtn').onclick = async () => {
@@ -424,11 +378,11 @@ document.getElementById('gbtn').onclick = async () => {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({armed: !armed})
   });
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 };
 
 async function saveLabels(){
-  const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== ''); // Filter out empty lines
+  const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== '');
   if (newLabels.length === 0) {
       alert('Please enter at least one label.');
       return;
@@ -439,18 +393,17 @@ async function saveLabels(){
     body: JSON.stringify({labels: newLabels})
   });
   alert('Zone labels saved!');
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function saveDingZones(){
-  // zoneDingUnarmed is already updated by the checkboxes in renderOptions
   await fetch('/api/set_ding_zones', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ding_zones: zoneDingUnarmed})
   });
   alert('Ding zones saved!');
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function setMode(newMode){
@@ -459,29 +412,17 @@ async function setMode(newMode){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({mode: newMode})
   });
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function saveHomeAwayZones(){
-  // homeModeZones and awayModeZones are already updated by the checkboxes in renderModes
   await fetch('/api/set_mode_zones', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({home: homeModeZones, away: awayModeZones})
   });
   alert('Home/Away mode zone configurations saved!');
-  fetchAll(); // Re-fetch all data to update UI
-}
-
-async function savePhoneNumbers(){
-  const nums = document.getElementById('phone-numbers-text').value.split('\n').filter(x => x.trim() !== ''); // Filter out empty lines
-  await fetch('/api/set_sms', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({sms: nums})
-  });
-  alert('SMS recipient list saved!');
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function addSched(){
@@ -494,23 +435,22 @@ async function addSched(){
     alert('Please enter a time (HH:MM) for the schedule.');
     return;
   }
-  if (isNaN(zoneIndex)) { // Basic check for valid zone index
+  if (isNaN(zoneIndex)) {
       alert('Invalid zone selected for schedule context.');
       return;
   }
-
 
   await fetch('/api/add_schedule', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      zone: zoneIndex >= 0 ? zoneIndex : null, // Send null if "N/A (Global)" is selected
+      zone: zoneIndex >= 0 ? zoneIndex : null,
       action: action,
       time: time,
       repeat: repeat
     })
   });
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function delSched(id){
@@ -522,7 +462,7 @@ async function delSched(id){
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({id: id})
   });
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
 async function savePinLayout(){
@@ -532,30 +472,28 @@ async function savePinLayout(){
   pinInputs.forEach(input => {
     const zoneIdx = input.id.replace('pin-', '');
     const pinVal = parseInt(input.value, 10);
-    if (isNaN(pinVal) || pinVal < 0) { // Basic validation for non-negative integers
+    if (isNaN(pinVal) || pinVal < 0) {
         alert(`Invalid pin number entered for ${zoneLabels[zoneIdx] || `Zone ${parseInt(zoneIdx)+1}`}. Please enter a non-negative number.`);
         hasError = true;
-        return; // Exit forEach early
+        return;
     }
     newPinLayout[zoneIdx] = pinVal;
   });
 
-  if (hasError) return; // Stop if there was a validation error
+  if (hasError) return;
 
-  await fetch('/api/set_pin_layout', { // Corrected endpoint name
+  await fetch('/api/set_pin_layout', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(newPinLayout)
   });
   alert('Pin layout saved!');
-  fetchAll(); // Re-fetch all data to update UI
+  fetchAll();
 }
 
-
-setInterval(fetchAll, 2000); // Poll every 2 seconds for updates
-fetchAll(); // Initial fetch on page load
+setInterval(fetchAll, 2000);
+fetchAll();
 </script>
 
 </body>
-</html>
-```
+</html> 
