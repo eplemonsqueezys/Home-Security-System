@@ -485,15 +485,6 @@ def api_set_mode_zones():
         print(f"Away mode zones config: {away_mode_zones}")
     return ('', 204)
 
-@app.route('/api/clear_ding')
-def clear_ding():
-    try:
-        if os.path.exists("static/ding.flag"):
-            os.remove("static/ding.flag")
-            print("Ding flag cleared.")
-    except Exception as e:
-        print(f"Error clearing ding flag: {e}")
-    return ('', 204)
 
 @app.route('/api/clear_alarm')
 def clear_alarm():
