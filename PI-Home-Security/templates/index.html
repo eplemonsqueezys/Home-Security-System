@@ -23,6 +23,22 @@
   th, td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
   label { margin-left: 0.5em; }
   h3, h4 { margin-bottom: 0.5em; margin-top: 1.5em;}
+
+  /* Style for the new audio enablement button */
+  #enableAudioButton {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    padding: 10px 15px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
 </style>
 </head>
 <body>
@@ -123,11 +139,34 @@
 <audio id="alarmAudio" loop><source src="/static/alarm.mp3" type="audio/mpeg"/></audio>
 <audio id="dingAudio"><source src="/static/ding.mp3" type="audio/mpeg"/></audio>
 
+<button id="enableAudioButton">Enable Sound</button>
+
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], smsNumbers = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
+
+// --- Audio Playback "Unlocker" ---
+// This function attempts to play and immediately pause both audio elements
+// when the user clicks the "Enable Sound" button. This registers a user
+// interaction with the browser, allowing subsequent programmatic playback.
+document.getElementById('enableAudioButton').onclick = () => {
+    alarmAudio.play().then(() => {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+        console.log("Alarm audio unlocked.");
+    }).catch(e => console.warn("Could not play alarm audio initially (likely browser policy):", e));
+
+    dingAudio.play().then(() => {
+        dingAudio.pause();
+        dingAudio.currentTime = 0;
+        console.log("Ding audio unlocked.");
+        document.getElementById('enableAudioButton').style.display = 'none'; // Hide button after successful unlock
+    }).catch(e => console.warn("Could not play ding audio initially (likely browser policy):", e));
+};
+// --- End Audio Playback "Unlocker" ---
+
 
 async function fetchAll() {
   try {
@@ -204,8 +243,13 @@ function render(){
     zonesEl.appendChild(div);
   });
 
-  // Control alarm audio based on armed state and tripped zones
+  // Control alarm audio based on global armed state and any armed zone being tripped
   const anyArmedZoneTripped = zones.some((tripped, i) => zoneArmed[i] && tripped);
+
+  // console.log debugging (uncomment these lines to see values in browser console)
+  // console.log("Global system armed:", armed);
+  // console.log("Is any armed zone currently tripped?", anyArmedZoneTripped);
+
   if (armed && anyArmedZoneTripped) {
     alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
   } else {
@@ -494,7 +538,7 @@ async function savePinLayout(){
         return; // Exit forEach early
     }
     newPinLayout[zoneIdx] = pinVal;
-  }); //test
+  });
 
   if (hasError) return; // Stop if there was a validation error
 
@@ -514,3 +558,4 @@ fetchAll(); // Initial fetch on page load
 
 </body>
 </html>
+```
