@@ -307,58 +307,95 @@ def poll_zones():
 
 def alarm_watcher():
     """Monitors zone states and triggers alarm, ding, and SMS alerts."""
-    global alerted_zones
+    global alerted_zones # Declare global to modify the set
+
+    # Ensure GPIO is set up (should ideally be done once at application start)
+    try:
+        # This setup should only run ONCE for the entire application.
+        # If your app restarts this thread, ensure GPIO.cleanup() is called appropriately
+        # or handle re-initialization. For a persistent daemon, this is fine.
+        GPIO.setmode(GPIO.BCM) # Use Broadcom GPIO numbers
+        for p in RELAY_PINS:
+            GPIO.setup(p, GPIO.OUT, initial=GPIO.LOW) # Initialize relays to OFF
+        print("GPIO initialized for alarm watcher.")
+    except Exception as e:
+        print(f"CRITICAL ERROR: Could not initialize GPIO for alarm watcher: {e}")
+        # Depending on criticality, you might want to exit or disable alarm functionality
+        return # Exit the watcher if GPIO fails to initialize
+
+
+    last_relay_state = None # To detect changes in relay state for logging
+
     while True:
-        with lock:
-            # Determine if the main alarm should be triggered
-            # Alarm triggers if the system is globally 'armed' AND any 'zone_armed' is tripped
-            triggered_by_armed_zone = False
-            for i, tripped in enumerate(zone_state):
-                # Ensure index bounds
-                if i < len(zone_armed) and zone_armed[i] and tripped:
-                    triggered_by_armed_zone = True
-                    break
+        try:
+            current_triggered_by_armed_zone = False
+            current_relay_output_state = GPIO.LOW # Default to off
 
-            # Control relays (e.g., siren)
-            relay_output_state = GPIO.HIGH if (armed and triggered_by_armed_zone) else GPIO.LOW
-            for p in RELAY_PINS:
-                try:
-                    GPIO.output(p, relay_output_state)
-                except Exception as e:
-                    print(f"Error controlling relay pin {p}: {e}")
+            with lock:
+                # Determine if the main alarm should be triggered
+                # Alarm triggers if the system is globally 'armed' AND any 'zone_armed' is tripped
+                for i, tripped in enumerate(zone_state):
+                    # Robustly check index bounds before accessing lists
+                    if i < len(zone_armed) and zone_armed[i] and tripped:
+                        current_triggered_by_armed_zone = True
+                        break # Found at least one armed and tripped zone
 
-            # Handle ding and SMS alerts for individual zones
-            for i, tripped in enumerate(zone_state):
-                # Ensure all related lists have this index
-                if i < len(zone_labels) and i < len(zone_armed) and i < len(zone_ding_unarmed):
+                # Calculate the desired relay state
+                current_relay_output_state = GPIO.HIGH if (armed and current_triggered_by_armed_zone) else GPIO.LOW
+
+                # Control relays (e.g., siren)
+                if current_relay_output_state != last_relay_state:
+                    action = "ACTIVATING" if current_relay_output_state == GPIO.HIGH else "DEACTIVATING"
+                    print(f"Alarm Relays: {action} (System Armed: {armed}, Armed Zone Tripped: {current_triggered_by_armed_zone})")
+                    for p in RELAY_PINS:
+                        try:
+                            GPIO.output(p, current_relay_output_state)
+                            print(f"  GPIO Pin {p} set to {current_relay_output_state}")
+                        except Exception as e:
+                            print(f"ERROR: Could not control relay pin {p}: {e}")
+                    last_relay_state = current_relay_output_state # Update last state after attempting output
+
+
+                # Handle ding and SMS alerts for individual zones
+                for i, tripped in enumerate(zone_state):
+                    # Ensure all related lists have this index for consistent behavior
+                    if i >= len(zone_labels) or i >= len(zone_armed) or i >= len(zone_ding_unarmed):
+                        # This should ideally not happen if data loading is consistent, but acts as a safeguard.
+                        print(f"WARNING: Zone index {i} out of bounds for some configuration lists. Skipping alerts for this zone.")
+                        continue # Skip to the next zone
+
+                    current_zone_label = zone_labels[i]
+                    current_zone_is_armed_for_detection = zone_armed[i]
+                    current_zone_dings_unarmed = (i in zone_ding_unarmed)
+
                     if tripped:
                         # Ding sound for unarmed zones configured to ding
-                        # Check if zone is currently disarmed (not zone_armed[i]) AND
-                        # it's in the list of zones that ding when unarmed
-                        if not zone_armed[i] and i in zone_ding_unarmed:
+                        if not current_zone_is_armed_for_detection and current_zone_dings_unarmed:
                             try:
                                 # Create a flag file for the frontend to play a ding sound
                                 with open("static/ding.flag", "w") as f: f.write("1")
                                 # Frontend will clear this flag after playing.
-                                print(f"Ding flag set for unarmed zone {zone_labels[i]}.")
+                                print(f"Ding flag set for unarmed zone '{current_zone_label}'.")
                             except IOError as e:
-                                print(f"[DING FLAG ERROR] Could not write ding flag: {e}")
+                                print(f"[DING FLAG ERROR] Could not write static/ding.flag: {e}")
 
                         # SMS alert for armed and tripped zones
-                        # Check if zone is currently armed (zone_armed[i]) AND
-                        # the overall system is armed AND
-                        # this zone hasn't already sent an alert in the current tripped state
-                        if zone_armed[i] and armed and i not in alerted_zones:
-                            print(f"Zone '{zone_labels[i]}' tripped and armed. Sending SMS alert.")
-                            send_sms_alert(zone_labels[i])
+                        # Only send if the zone is armed, the system is globally armed, AND it hasn't alerted yet
+                        if current_zone_is_armed_for_detection and armed and i not in alerted_zones:
+                            print(f"Zone '{current_zone_label}' tripped and armed. Sending SMS alert.")
+                            send_sms_alert(current_zone_label)
                             alerted_zones.add(i) # Add to set to prevent duplicate alerts
                     else:
                         # If a zone is no longer tripped, remove it from the alerted_zones set
                         if i in alerted_zones:
+                            print(f"Zone '{current_zone_label}' is no longer tripped. Removing from alerted_zones.")
                             alerted_zones.remove(i)
-                # else: Removed this warning as it floods logs if data length is inconsistent during transition
-                #      The load_config and set_labels functions now handle length consistency better.
-        time.sleep(0.2) # Check every 200ms
+
+            time.sleep(0.2) # Check every 200ms
+        except Exception as e:
+            print(f"ERROR in alarm_watcher loop: {e}")
+            # Consider a longer sleep or error handling strategy here to prevent rapid error looping
+            time.sleep(1) # Sleep longer on error to prevent CPU hogging
 
 def schedule_runner():
     """Periodically checks and executes scheduled arm/disarm events."""
