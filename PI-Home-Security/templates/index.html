@@ -261,11 +261,40 @@ function render(){
   });
 }
 
-function renderOptions(){
+function renderOptions() {
   const labelTextarea = document.getElementById('lab');
   if (document.activeElement !== labelTextarea) {
     labelTextarea.value = zoneLabels.join('\n');
   }
+
+  const dingListEl = document.getElementById('ding-zones-list');
+  if (document.activeElement !== dingListEl) {
+    dingListEl.innerHTML = '';
+    zoneLabels.forEach((label, i) => {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `ding-zone-${i}`;
+      checkbox.value = i;
+      checkbox.checked = zoneDingUnarmed.includes(i);
+      checkbox.onchange = () => {
+        if (checkbox.checked) {
+          if (!zoneDingUnarmed.includes(i)) zoneDingUnarmed.push(i);
+        } else {
+          zoneDingUnarmed = zoneDingUnarmed.filter(zoneIdx => zoneIdx !== i);
+        }
+        zoneDingUnarmed.sort((a,b) => a-b);
+      };
+      const labelEl = document.createElement('label');
+      labelEl.htmlFor = `ding-zone-${i}`;
+      labelEl.textContent = label;
+      dingListEl.appendChild(checkbox);
+      dingListEl.appendChild(labelEl);
+      dingListEl.appendChild(document.createElement('br'));
+    });
+  }
+}
+
+
 
   const dingListEl = document.getElementById('ding-zones-list');
   dingListEl.innerHTML = '';
@@ -290,7 +319,6 @@ function renderOptions(){
     dingListEl.appendChild(labelEl);
     dingListEl.appendChild(document.createElement('br'));
   });
-}
 
 function renderModes(){
   const modeRadio = document.querySelector(`input[name=mode][value=${mode}]`);
@@ -369,26 +397,35 @@ function renderSchedules(){
   });
 }
 
-function fillPins(){
+function fillPins() {
   const pinListBody = document.getElementById('plist');
   pinListBody.innerHTML = '';
 
   if (!zoneLabels || zoneLabels.length === 0) {
-      console.warn("No zones defined to fill pin layout.");
-      return;
+    console.warn("No zones defined to fill pin layout.");
+    return;
   }
 
   for (let i = 0; i < zoneLabels.length; i++) {
-    const row = pinListBody.insertRow();
     const zoneLabel = zoneLabels[i];
     const currentPin = pinLayout[i] !== undefined ? pinLayout[i] : 0;
 
+    const row = pinListBody.insertRow();
     row.innerHTML = `
       <td>${zoneLabel}</td>
-      <td><input class="pin-input" id="pin-${i}" type="number" value="${currentPin}" min="0" /></td>
+      <td><input class="pin-input" id="pin-${i}" type="number" value="" min="0" /></td>
     `;
+
+    const input = row.querySelector('input');
+    const currentlyFocused = document.activeElement === input;
+    if (!currentlyFocused) {
+      input.value = currentPin;
+    } else {
+      input.dataset.keep = "1"; // optional: mark to prevent external overwrite
+    }
   }
 }
+
 
 async function toggleZone(i){
   await fetch('/api/zone_arm', {
