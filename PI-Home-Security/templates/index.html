@@ -1,45 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Alarm Dashboard</title>
-<style>
-  body { font-family: sans-serif; background: #f4f4f4; margin: 0; }
-  header, nav { background: #333; color: #fff; padding: 1em; text-align: center; }
-  nav button { background: none; border: none; color: #fff; padding: 0.8em; margin: 0 0.2em; cursor: pointer; }
-  nav button.active { background: #555; }
-  .content { padding: 1em; max-width: 800px; margin: auto; }
-  .zones { display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; }
-  .zone { background: #fff; padding: 1em; border-radius: 5px; text-align: center; width: 140px; box-shadow: 0 0 5px #ccc; }
-  .ok { border: 2px solid green; }
-  .tripped { border: 2px solid red; }
-  .disarmed { opacity: 0.5; }
-  .arm-btn { padding: 0.5em; border: none; color: #fff; cursor: pointer; border-radius: 4px; }
-  .arm-btn.save { background: green; }
-  .arm-btn.disarm { background: red; }
-  .pin-input { width: 60px; }
-  .pin-save { background: teal; color: #fff; padding: 0.5em; border: none; border-radius: 4px; cursor: pointer; margin-top: 0.5em; }
-  table { width: 100%; border: 1px solid #ccc; border-collapse: collapse; margin-top: 1em;}
-  th, td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
-  label { margin-left: 0.5em; }
-  h3, h4 { margin-bottom: 0.5em; margin-top: 1.5em;}
-
-  /* Style for the new audio enablement button */
-  #enableAudioButton {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-    padding: 10px 15px;
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Alarm Dashboard</title>
+  <style>
+    body { font-family: sans-serif; background: #f4f4f4; margin: 0; }
+    header, nav { background: #333; color: #fff; padding: 1em; text-align: center; }
+    nav button { background: none; border: none; color: #fff; padding: 0.8em; margin: 0 0.2em; cursor: pointer; }
+    nav button.active { background: #555; }
+    .content { padding: 1em; max-width: 800px; margin: auto; }
+    .zones { display: flex; flex-wrap: wrap; gap: 1em; justify-content: center; }
+    .zone { background: #fff; padding: 1em; border-radius: 5px; text-align: center; width: 140px; box-shadow: 0 0 5px #ccc; }
+    .ok { border: 2px solid green; }
+    .tripped { border: 2px solid red; }
+    .disarmed { opacity: 0.5; }
+    .arm-btn { padding: 0.5em; border: none; color: #fff; cursor: pointer; border-radius: 4px; }
+    .arm-btn.save { background: green; }
+    .arm-btn.disarm { background: red; }
+    .pin-input { width: 60px; }
+    .pin-save { background: teal; color: #fff; padding: 0.5em; border: none; border-radius: 4px; cursor: pointer; margin-top: 0.5em; }
+    table { width: 100%; border: 1px solid #ccc; border-collapse: collapse; margin-top: 1em;}
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: center; }
+    label { margin-left: 0.5em; }
+    h3, h4 { margin-bottom: 0.5em; margin-top: 1.5em;}
+    #pauseUpdates {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1000;
+      padding: 10px 15px;
+      background: #555;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+  </style>
 </head>
 <body>
 
@@ -54,7 +52,7 @@
 
 <div class="content">
   <div id="status">
-    <button id="gbtn" class="arm-btn">Loading... (Polling ON)</button>
+    <button id="gbtn" class="arm-btn">Loading...</button>
     <div class="zones" id="zones"></div>
   </div>
 
@@ -64,7 +62,6 @@
     <button onclick="saveLabels()">Save Labels</button>
 
     <h3>Ding on Unarmed Trip:</h3>
-    <p>Select zones that should play a "ding" sound when tripped, even if the system is unarmed.</p>
     <div id="ding-zones-list"></div>
     <button onclick="saveDingZones()">Save Ding Zones</button>
   </div>
@@ -74,33 +71,17 @@
     <label><input type="radio" name="mode" value="home" onchange="setMode('home')"> Home</label>
     <label><input type="radio" name="mode" value="away" onchange="setMode('away')"> Away</label>
 
-    <h4>Armed Zones per Mode Configuration</h4>
-    <p>Select which zones should be armed for detection when the system is in 'Home' or 'Away' mode.</p>
-    <div>
-        <strong>Home Mode Zones:</strong><br>
-        <div id="homezones-list"></div>
-    </div>
-    <div>
-        <strong>Away Mode Zones:</strong><br>
-        <div id="awayzones-list"></div>
-    </div>
-    <button onclick="saveHomeAwayZones()">Save Mode Zone Configurations</button>
+    <h4>Armed Zones per Mode</h4>
+    <div><strong>Home Mode Zones:</strong><div id="homezones-list"></div></div>
+    <div><strong>Away Mode Zones:</strong><div id="awayzones-list"></div></div>
+    <button onclick="saveHomeAwayZones()">Save</button>
   </div>
 
   <div id="schedules" style="display:none;">
     <h3>Current Schedules:</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Zone (for context)</th>
-                <th>Action</th>
-                <th>Time</th>
-                <th>Repeat Daily</th>
-                <th>Delete</th>
-            </tr>
-        </thead>
-      <tbody id="sched"></tbody>
-    </table>
+    <table><thead><tr><th>Zone</th><th>Action</th><th>Time</th><th>Repeat</th><th>Delete</th></tr></thead>
+    <tbody id="sched"></tbody></table>
+
     <h3>Add New Schedule:</h3>
     <label for="szone">Zone:</label>
     <select id="szone"></select>
@@ -114,16 +95,8 @@
 
   <div id="pinlayout" style="display:none;">
     <h3>Zone to GPIO Pin Assignment:</h3>
-    <p>Assign a Broadcom (BCM) GPIO pin number to each zone. Enter '0' or leave blank if a zone is unused.</p>
-    <table>
-        <thead>
-            <tr>
-                <th>Zone</th>
-                <th>GPIO Pin Number</th>
-            </tr>
-        </thead>
-        <tbody id="plist"></tbody>
-    </table>
+    <table><thead><tr><th>Zone</th><th>GPIO</th></tr></thead>
+    <tbody id="plist"></tbody></table>
     <button class="pin-save" onclick="savePinLayout()">Save Pin Layout</button>
   </div>
 </div>
@@ -131,396 +104,79 @@
 <audio id="alarmAudio" loop><source src="/static/alarm.mp3" type="audio/mpeg"/></audio>
 <audio id="dingAudio"><source src="/static/ding.mp3" type="audio/mpeg"/></audio>
 
+<button id="pauseUpdates" onclick="togglePause()">Pause Updates</button>
+
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
+let isPaused = false;
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
 
-let pollingActive = true;    // Polling ON initially
-let pollingIntervalId = null;
-
-async function fetchAll() {
-  try {
-    const js = await (await fetch('/api/zone_status')).json();
-    armed = js.armed;
-    zones = js.zones;
-    zoneArmed = js.zone_armed;
-    zoneLabels = js.zone_labels;
-    pinLayout = js.pin_layout;
-    mode = js.mode;
-    homeModeZones = js.home_mode_zones;
-    awayModeZones = js.away_mode_zones;
-    zoneDingUnarmed = js.zone_ding_unarmed;
-
-    schedules = await (await fetch('/api/schedules')).json();
-
-    const [dingResponse, alarmResponse] = await Promise.all([
-      fetch('/static/ding.flag').catch(() => ({text: () => '0'})),
-      fetch('/static/alarm.flag').catch(() => ({text: () => '0'}))
-    ]);
-
-    const [dingText, alarmText] = await Promise.all([
-      dingResponse.text(),
-      alarmResponse.text()
-    ]);
-
-    const dingFlag = dingText.trim() === '1';
-    const alarmFlag = alarmText.trim() === '1';
-
-    if (dingFlag) {
-      dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-      await fetch('/api/clear_ding');
-    }
-
-    if (alarmFlag) {
-      alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
-    } else {
-      alarmAudio.pause();
-      alarmAudio.currentTime = 0;
-      await fetch('/api/clear_alarm');
-    }
-
-    render();
-    renderOptions();
-    renderModes();
-    renderSchedules();
-    fillPins();
-  } catch (e) {
-    console.error("Error fetching data:", e);
-  }
+function togglePause() {
+  isPaused = !isPaused;
+  document.getElementById("pauseUpdates").textContent = isPaused ? "Resume Updates" : "Pause Updates";
 }
 
-function startPolling() {
-  if (!pollingIntervalId) {
-    pollingIntervalId = setInterval(() => {
-      if (pollingActive) {
-        fetchAll();
+function fetchAll() {
+  if (isPaused) return;
+
+  fetch('/api/zone_status')
+    .then(res => res.json())
+    .then(js => {
+      armed = js.armed;
+      zones = js.zones;
+      zoneArmed = js.zone_armed;
+      zoneLabels = js.zone_labels;
+      pinLayout = js.pin_layout;
+      mode = js.mode;
+      homeModeZones = js.home_mode_zones;
+      awayModeZones = js.away_mode_zones;
+      zoneDingUnarmed = js.zone_ding_unarmed;
+      return fetch('/api/schedules');
+    })
+    .then(res => res.json())
+    .then(js => {
+      schedules = js;
+      return Promise.all([
+        fetch('/static/ding.flag').then(r => r.text()).catch(() => '0'),
+        fetch('/static/alarm.flag').then(r => r.text()).catch(() => '0')
+      ]);
+    })
+    .then(([ding, alarm]) => {
+      if (ding.trim() === '1') {
+        dingAudio.play().catch(() => {});
+        fetch('/api/clear_ding');
       }
-    }, 200);
-  }
-}
+      if (alarm.trim() === '1') {
+        alarmAudio.play().catch(() => {});
+      } else {
+        alarmAudio.pause();
+        alarmAudio.currentTime = 0;
+        fetch('/api/clear_alarm');
+      }
 
-function stopPolling() {
-  if (pollingIntervalId) {
-    clearInterval(pollingIntervalId);
-    pollingIntervalId = null;
-  }
-}
-
-document.getElementById('gbtn').onclick = async () => {
-  await fetch('/api/arm', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({armed: !armed})
-  });
-  fetchAll();
-
-  pollingActive = !pollingActive;
-
-  const btn = document.getElementById('gbtn');
-  // Update button text but keep the arm/disarm wording clear:
-  btn.textContent = (armed ? 'Disable System' : 'Enable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
-};
-
-// Start polling on page load
-startPolling();
-fetchAll();
-
-function show(id){
-  document.querySelectorAll('nav button').forEach(button => {
-    button.classList.remove('active');
-  });
-  const activeButton = document.querySelector(`nav button[onclick="show('${id}')"]`);
-  if (activeButton) {
-    activeButton.classList.add('active');
-  }
-
-  ['status','options','modes','schedules','pinlayout']
-    .forEach(tab => document.getElementById(tab).style.display = (tab === id ? 'block' : 'none'));
-}
-
-function render(){
-  const btn = document.getElementById('gbtn');
-  btn.textContent = (armed ? 'Enable System' : 'Disable System') + (pollingActive ? ' (Polling ON)' : ' (Polling OFF)');
-  btn.className = armed ? 'arm-btn disarm' : 'arm-btn save';
-
-  const zonesEl = document.getElementById('zones');
-  zonesEl.innerHTML = '';
-  zones.forEach((tripped, i) => {
-    const div = document.createElement('div');
-    const isArmedForDetection = zoneArmed[i];
-    div.className = 'zone ' + (isArmedForDetection ? (tripped ? 'tripped' : 'ok') : 'disarmed');
-    div.innerHTML = `<b>${zoneLabels[i]}</b><br>${tripped ? '❌ Tripped' : '✔️ OK'}<br>`;
-    const btn = document.createElement('button');
-    btn.textContent = isArmedForDetection ? 'Disarm Zone' : 'Arm Zone';
-    btn.className = isArmedForDetection ? 'arm-btn disarm' : 'arm-btn save';
-    btn.onclick = () => toggleZone(i);
-    div.appendChild(btn);
-    zonesEl.appendChild(div);
-  });
-}
-
-function renderOptions() {
-  const labelTextarea = document.getElementById('lab');
-  if (document.activeElement !== labelTextarea) {
-    labelTextarea.value = zoneLabels.join('\n');
-  }
-
-  const dingListEl = document.getElementById('ding-zones-list');
-  if (document.activeElement !== dingListEl) {
-    dingListEl.innerHTML = '';
-    zoneLabels.forEach((label, i) => {
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.id = `ding-zone-${i}`;
-      checkbox.value = i;
-      checkbox.checked = zoneDingUnarmed.includes(i);
-      checkbox.onchange = () => {
-        if (checkbox.checked) {
-          if (!zoneDingUnarmed.includes(i)) zoneDingUnarmed.push(i);
-        } else {
-          zoneDingUnarmed = zoneDingUnarmed.filter(zoneIdx => zoneIdx !== i);
-        }
-        zoneDingUnarmed.sort((a,b) => a-b);
-      };
-      const labelEl = document.createElement('label');
-      labelEl.htmlFor = `ding-zone-${i}`;
-      labelEl.textContent = label;
-      dingListEl.appendChild(checkbox);
-      dingListEl.appendChild(labelEl);
-      dingListEl.appendChild(document.createElement('br'));
+      if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") {
+        render();
+        renderOptions();
+        renderModes();
+        renderSchedules();
+        fillPins();
+      }
     });
-  }
 }
 
+function show(tab) {
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`nav button[onclick="show('${tab}')"]`)?.classList.add('active');
 
-
-  const dingListEl = document.getElementById('ding-zones-list');
-  dingListEl.innerHTML = '';
-  zoneLabels.forEach((label, i) => {
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `ding-zone-${i}`;
-    checkbox.value = i;
-    checkbox.checked = zoneDingUnarmed.includes(i);
-    checkbox.onchange = () => {
-      if (checkbox.checked) {
-        if (!zoneDingUnarmed.includes(i)) zoneDingUnarmed.push(i);
-      } else {
-        zoneDingUnarmed = zoneDingUnarmed.filter(zoneIdx => zoneIdx !== i);
-      }
-      zoneDingUnarmed.sort((a,b) => a-b);
-    };
-    const labelEl = document.createElement('label');
-    labelEl.htmlFor = `ding-zone-${i}`;
-    labelEl.textContent = label;
-    dingListEl.appendChild(checkbox);
-    dingListEl.appendChild(labelEl);
-    dingListEl.appendChild(document.createElement('br'));
-  });
-
-function renderModes(){
-  const modeRadio = document.querySelector(`input[name=mode][value=${mode}]`);
-  if (modeRadio) {
-    modeRadio.checked = true;
-  }
-
-  const homeZonesListEl = document.getElementById('homezones-list');
-  homeZonesListEl.innerHTML = '';
-  zoneLabels.forEach((label, i) => {
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `home-zone-${i}`;
-    checkbox.value = i;
-    checkbox.checked = homeModeZones.includes(i);
-    checkbox.onchange = () => {
-      if (checkbox.checked) {
-        if (!homeModeZones.includes(i)) homeModeZones.push(i);
-      } else {
-        homeModeZones = homeModeZones.filter(zoneIdx => zoneIdx !== i);
-      }
-      homeModeZones.sort((a,b) => a-b);
-    };
-    const labelEl = document.createElement('label');
-    labelEl.htmlFor = `home-zone-${i}`;
-    labelEl.textContent = label;
-    homeZonesListEl.appendChild(checkbox);
-    homeZonesListEl.appendChild(labelEl);
-    homeZonesListEl.appendChild(document.createElement('br'));
-  });
-
-  const awayZonesListEl = document.getElementById('awayzones-list');
-  awayZonesListEl.innerHTML = '';
-  zoneLabels.forEach((label, i) => {
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = `away-zone-${i}`;
-    checkbox.value = i;
-    checkbox.checked = awayModeZones.includes(i);
-    checkbox.onchange = () => {
-      if (checkbox.checked) {
-        if (!awayModeZones.includes(i)) awayModeZones.push(i);
-      } else {
-        awayModeZones = awayModeZones.filter(zoneIdx => zoneIdx !== i);
-      }
-      awayModeZones.sort((a,b) => a-b);
-    };
-    const labelEl = document.createElement('label');
-    labelEl.htmlFor = `away-zone-${i}`;
-    labelEl.textContent = label;
-    awayZonesListEl.appendChild(checkbox);
-    awayZonesListEl.appendChild(labelEl);
-    awayZonesListEl.appendChild(document.createElement('br'));
+  ['status', 'options', 'modes', 'schedules', 'pinlayout'].forEach(id => {
+    document.getElementById(id).style.display = id === tab ? 'block' : 'none';
   });
 }
 
-function renderSchedules(){
-  const szoneSelect = document.getElementById('szone');
-  szoneSelect.innerHTML = '';
-  szoneSelect.add(new Option("N/A (Global)", -1));
-
-  zoneLabels.forEach((label, i) => szoneSelect.add(new Option(label, i)));
-
-  const scheduleBody = document.getElementById('sched');
-  scheduleBody.innerHTML = '';
-  schedules.forEach(s => {
-    const tr = scheduleBody.insertRow();
-    const zoneDisplay = (s.zone !== undefined && s.zone >= 0 && s.zone < zoneLabels.length) ? zoneLabels[s.zone] : "N/A (Global)";
-    tr.innerHTML = `
-      <td>${zoneDisplay}</td>
-      <td>${s.action}</td>
-      <td>${s.time}</td>
-      <td>${s.repeat ? 'Yes' : 'No'}</td>
-      <td><button onclick="delSched(${s.id})">Delete</button></td>
-    `;
-  });
-}
-
-function fillPins() {
-  const pinListBody = document.getElementById('plist');
-  pinListBody.innerHTML = '';
-
-  if (!zoneLabels || zoneLabels.length === 0) {
-    console.warn("No zones defined to fill pin layout.");
-    return;
-  }
-
-  for (let i = 0; i < zoneLabels.length; i++) {
-    const zoneLabel = zoneLabels[i];
-    const currentPin = pinLayout[i] !== undefined ? pinLayout[i] : 0;
-
-    const row = pinListBody.insertRow();
-    row.innerHTML = `
-      <td>${zoneLabel}</td>
-      <td><input class="pin-input" id="pin-${i}" type="number" value="" min="0" /></td>
-    `;
-
-    const input = row.querySelector('input');
-    const currentlyFocused = document.activeElement === input;
-    if (!currentlyFocused) {
-      input.value = currentPin;
-    } else {
-      input.dataset.keep = "1"; // optional: mark to prevent external overwrite
-    }
-  }
-}
-
-
-async function toggleZone(i){
-  await fetch('/api/zone_arm', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({index: i, armed: !zoneArmed[i]})
-  });
-  fetchAll();
-}
-
-async function saveLabels(){
-  const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== '');
-  if (newLabels.length === 0) {
-      alert('Please enter at least one label.');
-      return;
-  }
-  await fetch('/api/set_labels', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({labels: newLabels})
-  });
-  alert('Zone labels saved!');
-  fetchAll();
-}
-
-async function saveDingZones(){
-  await fetch('/api/set_ding_zones', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ding_zones: zoneDingUnarmed})
-  });
-  alert('Ding zones saved!');
-  fetchAll();
-}
-
-async function setMode(newMode){
-  await fetch('/api/set_mode', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({mode: newMode})
-  });
-  fetchAll();
-}
-
-async function saveHomeAwayZones(){
-  await fetch('/api/set_mode_zones', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({home: homeModeZones, away: awayModeZones})
-  });
-  alert('Home/Away mode zone configurations saved!');
-  fetchAll();
-}
-
-async function addSched(){
-  const zoneIndex = parseInt(document.getElementById('szone').value);
-  const action = document.getElementById('sact').value;
-  const time = document.getElementById('stime').value;
-  const repeat = document.getElementById('srep').checked;
-
-  if (!time) {
-    alert('Please select a time.');
-    return;
-  }
-
-  await fetch('/api/add_schedule', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({zone: zoneIndex, action, time, repeat})
-  });
-  alert('Schedule added!');
-  fetchAll();
-}
-
-async function delSched(id){
-  await fetch(`/api/delete_schedule?id=${id}`, { method: 'DELETE' });
-  alert('Schedule deleted!');
-  fetchAll();
-}
-
-async function savePinLayout(){
-  const newPins = [];
-  for(let i = 0; i < zoneLabels.length; i++){
-    const val = parseInt(document.getElementById(`pin-${i}`).value);
-    newPins.push(isNaN(val) ? 0 : val);
-  }
-  await fetch('/api/set_pin_layout', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({pin_layout: newPins})
-  });
-  alert('Pin layout saved!');
-  fetchAll();
-}
+setInterval(fetchAll, 200);
+fetchAll();
 </script>
-
 </body>
 </html>
