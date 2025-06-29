@@ -224,8 +224,10 @@ function render(){
     zonesEl.appendChild(div);
   });
 
+  // Check if system is armed AND at least one armed zone is tripped
   const anyArmedZoneTripped = zones.some((tripped, i) => zoneArmed[i] && tripped);
-
+  
+  // Only play alarm if system is armed AND an armed zone is tripped
   if (armed && anyArmedZoneTripped) {
     alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
   } else {
@@ -233,6 +235,7 @@ function render(){
     alarmAudio.currentTime = 0;
   }
 }
+
 
 function renderOptions(){
   const labelTextarea = document.getElementById('lab');
