@@ -715,19 +715,40 @@ gbtn.addEventListener('click', async () => {
   fetchAll();
 });
 
-async function saveLabels(){
-  const newLabels = document.getElementById('lab').value.split('\n').filter(x => x.trim() !== '');
-  if (newLabels.length === 0) {
-      alert('Please enter at least one label.');
-      return;
-  }
-  await fetch('/api/set_labels', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({labels: newLabels})
-  });
-  alert('Zone labels saved!');
-  fetchAll();
+async function saveLabels() {
+    const newLabels = document.getElementById('lab').value.split('\n')
+        .map(label => label.trim())
+        .filter(label => label !== '');
+    
+    if (newLabels.length === 0) {
+        alert('Please enter at least one label.');
+        return;
+    }
+    
+    try {
+        // Disable the continuous polling temporarily
+        clearInterval(pollInterval);
+        
+        const response = await fetch('/api/set_labels', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({labels: newLabels})
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to save labels');
+        }
+        
+        alert('Zone labels saved!');
+        // Re-enable polling after successful save
+        pollInterval = setInterval(fetchAll, 2000);
+        await fetchAll(); // Force immediate refresh
+    } catch (error) {
+        console.error('Error saving labels:', error);
+        alert('Failed to save labels. Please try again.');
+        // Re-enable polling even if there was an error
+        pollInterval = setInterval(fetchAll, 2000);
+    }
 }
 
 async function saveDingZones(){
