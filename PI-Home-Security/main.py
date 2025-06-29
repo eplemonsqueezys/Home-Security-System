@@ -4,14 +4,13 @@ import time
 import json
 import os
 import atexit
-from collections import defaultdict # For schedules by ID
+from collections import defaultdict
 
 # --- Mock RPi.GPIO for non-Raspberry Pi environments ---
 try:
     import RPi.GPIO as GPIO
     print("RPi.GPIO imported successfully. Running on Raspberry Pi.")
 except ImportError:
-    # Mock RPi.GPIO for non-Raspberry Pi environments
     class MockGPIO:
         BCM = 11
         IN = 1
@@ -24,7 +23,7 @@ except ImportError:
         def setup(self, pin, mode, pull_up_down=None):
             print(f"Mock GPIO: Setup pin {pin} as {'IN' if mode == self.IN else 'OUT'}")
         def input(self, pin):
-            return self.LOW # Default to not tripped for stability
+            return self.LOW
         def output(self, pin, value):
             state = "HIGH" if value == self.HIGH else "LOW"
             print(f"Mock GPIO: Pin {pin} set to {state}")
@@ -35,37 +34,32 @@ except ImportError:
 
 app = Flask(__name__)
 CONFIG_FILE = "config.json"
-DEFAULT_ZONE_PINS = [4, 17, 18, 27, 22, 23, 24, 25] # Default GPIO pins for zones
-RELAY_PINS = [5, 6, 13, 19, 26, 20, 21, 16] # Default GPIO pins for relays (e.g., siren)
+DEFAULT_ZONE_PINS = [4, 17, 18, 27, 22, 23, 24, 25]
+RELAY_PINS = [5, 6, 13, 19, 26, 20, 21, 16]
 
 # Global state variables
-armed = False # Master arm/disarm state
-zone_state = [] # Current physical state of each zone (True if tripped/open, False if closed)
-zone_armed = [] # Whether each zone is currently armed for detection (can be manually toggled)
-zone_labels = [] # User-defined labels for each zone (e.g., "Front Door", "Living Room Window")
-pin_layout = {} # Mapping of zone index to GPIO pin number
-schedules = [] # List of scheduled arm/disarm events
-alerted_zones = set() # Zones that have already triggered an alert in the current alarm state
-zone_ding_unarmed = [] # Zones that "ding" (make a sound) when tripped while the system is unarmed
-home_mode_zones = [] # Zones configured to be armed when system is in 'home' mode
-away_mode_zones = [] # Zones configured to be armed when system is in 'away' mode
-mode = "away" # Current system mode ("home" or "away")
-
-schedule_id_counter = 0 # Counter for unique schedule IDs
-current_zone_pins = [] # List of currently active GPIO pins for zones
-lock = threading.Lock() # Lock for thread-safe access to shared global variables
-
-# Keep track of one-time schedules executed today to prevent re-execution
+armed = False
+zone_state = []
+zone_armed = []
+zone_labels = []
+pin_layout = {}
+schedules = []
+alerted_zones = set()
+zone_ding_unarmed = []
+home_mode_zones = []
+away_mode_zones = []
+mode = "away"
+schedule_id_counter = 0
+current_zone_pins = []
+lock = threading.Lock()
 executed_schedules_today = set()
-# Flag to control the schedule runner thread
 schedule_runner_active = True
 
 # --- GPIO Initialization ---
-GPIO.setmode(GPIO.BCM) # Use Broadcom SOC channel numbers
-GPIO.setwarnings(False) # Disable GPIO warnings
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 
 def free_pins(pins):
-    """Cleans up GPIO pins to release them."""
     for pin in pins:
         try:
             GPIO.cleanup(pin)
@@ -74,44 +68,37 @@ def free_pins(pins):
             print(f"GPIO: Error cleaning up pin {pin}: {e}")
 
 def setup_zone_pins(new_pins):
-    """Sets up new GPIO pins for zones and reinitializes zone states."""
     global current_zone_pins, zone_state, zone_armed
     with lock:
-        # Clean up previously used pins
         free_pins(current_zone_pins)
-        current_zone_pins[:] = new_pins # Update global list of current pins
-
-        # Initialize zone states and arming status for new pins
+        current_zone_pins[:] = new_pins
         num_zones = len(current_zone_pins)
-        zone_state[:] = [False] * num_zones # All zones initially not tripped
+        zone_state[:] = [False] * num_zones
         zone_armed[:] = [True] * num_zones
 
         for p in current_zone_pins:
-            if p == 0: # Skip placeholder for unassigned pins
+            if p == 0:
                 print(f"GPIO: Skipping pin setup for unassigned pin (0).")
                 continue
             try:
-                # Set up pin as input with pull-up resistor (assuming normally closed sensors)
                 GPIO.setup(p, GPIO.IN, pull_up_down=GPIO.PUD_UP)
                 print(f"GPIO: Setup input pin {p} with PUD_UP")
             except Exception as e:
                 print(f"[GPIO INPUT ERROR] Pin {p}: {e}")
 
 def setup_relay_pins():
-    """Sets up GPIO pins for relays as outputs and ensures they are off."""
     with lock:
-        free_pins(RELAY_PINS) # Clean up any prior relay pin setups
+        free_pins(RELAY_PINS)
         for pin in RELAY_PINS:
             try:
                 GPIO.setup(pin, GPIO.OUT)
-                GPIO.output(pin, GPIO.LOW) # Ensure relay is off (e.g., siren is silent)
+                GPIO.output(pin, GPIO.LOW)
                 print(f"GPIO: Setup output pin {pin} to LOW")
             except Exception as e:
                 print(f"[GPIO OUTPUT ERROR] Relay pin {pin}: {e}")
 
 # --- Configuration Management ---
 def save_config():
-    """Saves the current application configuration to a JSON file."""
     try:
         with open(CONFIG_FILE, "w") as f:
             json.dump({
@@ -120,21 +107,18 @@ def save_config():
                 "zone_ding_unarmed": zone_ding_unarmed,
                 "home_mode_zones": home_mode_zones,
                 "away_mode_zones": away_mode_zones,
-                "schedules": schedules, # Include schedules in saved config
-                "mode": mode # Save current mode
-            }, f, indent=4) # Use indent for readability
+                "schedules": schedules,
+                "mode": mode
+            }, f, indent=4)
         print("[CONFIG] Configuration saved successfully.")
     except Exception as e:
         print(f"[CONFIG] Save error: {e}")
 
 def load_config():
-    """Loads application configuration from a JSON file.
-    Initializes default values if the file doesn't exist."""
     global pin_layout, zone_labels, zone_ding_unarmed, home_mode_zones, \
            away_mode_zones, schedules, schedule_id_counter, mode, armed
 
     default_num_zones = len(DEFAULT_ZONE_PINS)
-    # Default initial states for a fresh configuration
     default_zone_labels = [f"Zone {i+1}" for i in range(default_num_zones)]
     default_pin_layout = {str(i): DEFAULT_ZONE_PINS[i] for i in range(default_num_zones)}
     default_home_mode_zones = list(range(default_num_zones))
@@ -150,7 +134,7 @@ def load_config():
         schedules[:] = []
         schedule_id_counter = 0
         mode = "away"
-        armed = False # Start disarmed by default
+        armed = False
         pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
         setup_zone_pins(pins)
         save_config()
@@ -178,7 +162,6 @@ def load_config():
                 if pin is not None:
                     pins_to_setup.append(int(pin))
                 else:
-                    print(f"Warning: No pin defined in config for zone {i} ('{zone_labels[i]}'). Using default if available or 0.")
                     if i < len(DEFAULT_ZONE_PINS):
                         pins_to_setup.append(DEFAULT_ZONE_PINS[i])
                         pin_layout[str(i)] = DEFAULT_ZONE_PINS[i]
@@ -212,13 +195,11 @@ def load_config():
         setup_zone_pins(pins)
         save_config()
 
-# --- Initialize GPIO and Load Configuration on Startup ---
 setup_relay_pins()
 load_config()
 
 # --- Background Threads ---
 def poll_zones():
-    """Continuously polls the state of alarm zones via GPIO inputs."""
     while True:
         with lock:
             num_current_zones = len(current_zone_pins)
@@ -236,7 +217,6 @@ def poll_zones():
         time.sleep(0.1)
 
 def alarm_watcher():
-    """Monitors zone states and triggers alarm and ding."""
     global alerted_zones
     last_relay_state = None
 
@@ -264,9 +244,23 @@ def alarm_watcher():
                             print(f"ERROR: Could not control relay pin {p}: {e}")
                     last_relay_state = current_relay_output_state
 
+                # Handle alarm flag
+                if armed and current_triggered_by_armed_zone:
+                    try:
+                        with open("static/alarm.flag", "w") as f: f.write("1")
+                        print("Alarm flag set for armed zone tripped.")
+                    except IOError as e:
+                        print(f"[ALARM FLAG ERROR] Could not write static/alarm.flag: {e}")
+                else:
+                    try:
+                        if os.path.exists("static/alarm.flag"):
+                            os.remove("static/alarm.flag")
+                    except Exception as e:
+                        print(f"Error clearing alarm flag: {e}")
+
+                # Handle ding flag
                 for i, tripped in enumerate(zone_state):
                     if i >= len(zone_labels) or i >= len(zone_armed) or i >= len(zone_ding_unarmed):
-                        print(f"WARNING: Zone index {i} out of bounds for some configuration lists. Skipping alerts for this zone.")
                         continue
 
                     current_zone_label = zone_labels[i]
@@ -295,7 +289,6 @@ def alarm_watcher():
             time.sleep(1)
 
 def schedule_runner():
-    """Periodically checks and executes scheduled arm/disarm events."""
     global armed
     last_checked_day = time.localtime().tm_mday
 
@@ -333,12 +326,10 @@ threading.Thread(target=schedule_runner, daemon=True).start()
 # --- Flask Routes ---
 @app.route('/')
 def index():
-    """Renders the main alarm dashboard HTML page."""
     return render_template('index.html')
 
 @app.route('/api/zone_status')
 def zone_status():
-    """Returns the current status of the alarm system and zones."""
     with lock:
         serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
         return jsonify({
@@ -355,7 +346,6 @@ def zone_status():
 
 @app.route('/api/arm', methods=['POST'])
 def api_arm():
-    """API to arm or disarm the entire alarm system."""
     global armed
     data = request.json or {}
     new_armed_state = data.get('armed')
@@ -370,7 +360,6 @@ def api_arm():
 
 @app.route('/api/zone_arm', methods=['POST'])
 def api_zone_arm():
-    """API to arm or disarm a specific zone for detection."""
     data = request.json or {}
     idx = data.get('index')
     status = data.get('armed')
@@ -388,7 +377,6 @@ def api_zone_arm():
 
 @app.route('/api/set_labels', methods=['POST'])
 def api_set_labels():
-    """API to set user-defined labels for zones."""
     data = request.get_json() or {}
     labs = data.get('labels', [])
 
@@ -444,11 +432,10 @@ def api_set_labels():
         setup_zone_pins(current_pins_for_setup)
         save_config()
         print(f"Zone labels and system size updated. Current zones: {len(zone_labels)}")
-        return ('', 204)
+    return ('', 204)
 
 @app.route('/api/set_ding_zones', methods=['POST'])
 def api_set_ding_zones():
-    """API to set which zones 'ding' when tripped while the system is unarmed."""
     data = request.json or {}
     ding_zones = data.get("ding_zones", [])
     if not isinstance(ding_zones, list):
@@ -463,7 +450,6 @@ def api_set_ding_zones():
 
 @app.route('/api/set_mode', methods=['POST'])
 def api_set_mode():
-    """API to set the system mode ('home' or 'away') and update zone arming accordingly."""
     global mode, zone_armed
     data = request.json or {}
     new_mode = data.get("mode")
@@ -484,7 +470,6 @@ def api_set_mode():
 
 @app.route('/api/set_mode_zones', methods=['POST'])
 def api_set_mode_zones():
-    """API to configure which zones are armed in 'home' and 'away' modes."""
     data = request.json or {}
     home_config = data.get("home", [])
     away_config = data.get("away", [])
@@ -502,7 +487,6 @@ def api_set_mode_zones():
 
 @app.route('/api/clear_ding')
 def clear_ding():
-    """API to clear the 'ding' flag file (used by frontend to stop ding sound)."""
     try:
         if os.path.exists("static/ding.flag"):
             os.remove("static/ding.flag")
@@ -511,15 +495,23 @@ def clear_ding():
         print(f"Error clearing ding flag: {e}")
     return ('', 204)
 
+@app.route('/api/clear_alarm')
+def clear_alarm():
+    try:
+        if os.path.exists("static/alarm.flag"):
+            os.remove("static/alarm.flag")
+            print("Alarm flag cleared.")
+    except Exception as e:
+        print(f"Error clearing alarm flag: {e}")
+    return ('', 204)
+
 @app.route('/api/schedules')
 def api_schedules():
-    """Returns the list of configured schedules."""
     with lock:
         return jsonify(schedules)
 
 @app.route('/api/add_schedule', methods=['POST'])
 def api_add_schedule():
-    """API to add a new schedule."""
     global schedule_id_counter
     data = request.json or {}
     zone = data.get('zone')
@@ -548,7 +540,6 @@ def api_add_schedule():
 
 @app.route('/api/delete_schedule', methods=['POST'])
 def api_delete_schedule():
-    """API to delete a schedule by its ID."""
     data = request.json or {}
     sched_id = data.get('id')
 
@@ -568,7 +559,6 @@ def api_delete_schedule():
 
 @app.route('/api/set_pin_layout', methods=['POST'])
 def api_set_pin_layout():
-    """API to update the GPIO pin assignments for zones."""
     data = request.json or {}
     
     if not isinstance(data, dict):
@@ -609,7 +599,6 @@ def api_set_pin_layout():
 
 # --- Cleanup on Exit ---
 def cleanup():
-    """Cleans up all GPIO pins when the application exits."""
     global schedule_runner_active
     schedule_runner_active = False
     time.sleep(0.5)
@@ -625,6 +614,9 @@ if __name__ == '__main__':
         os.makedirs('static')
     if not os.path.exists('static/ding.flag'):
         with open('static/ding.flag', 'w') as f:
+            f.write('0')
+    if not os.path.exists('static/alarm.flag'):
+        with open('static/alarm.flag', 'w') as f:
             f.write('0')
 
     app.run(host='0.0.0.0', port=5000, debug=False)

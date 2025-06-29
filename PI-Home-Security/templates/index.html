@@ -171,16 +171,32 @@ async function fetchAll() {
     zoneDingUnarmed = js.zone_ding_unarmed;
 
     schedules = await (await fetch('/api/schedules')).json();
+// handle ding.flag and alarm.flag
+const [dingResponse, alarmResponse] = await Promise.all([
+  fetch('/static/ding.flag').catch(() => ({text: () => '0'})),
+  fetch('/static/alarm.flag').catch(() => ({text: () => '0'}))
+]);
 
-    // handle ding.flag
-    const flagResponse = await fetch('/static/ding.flag');
-    const flagText = await flagResponse.text();
-    const flag = flagText.trim() === '1';
+const [dingText, alarmText] = await Promise.all([
+  dingResponse.text(),
+  alarmResponse.text()
+]);
 
-    if (flag) {
-      dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-      await fetch('/api/clear_ding');
-    }
+const dingFlag = dingText.trim() === '1';
+const alarmFlag = alarmText.trim() === '1';
+
+if (dingFlag) {
+  dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
+  await fetch('/api/clear_ding');
+}
+
+if (alarmFlag) {
+  alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
+} else {
+  alarmAudio.pause();
+  alarmAudio.currentTime = 0;
+  await fetch('/api/clear_alarm');
+} 
 
     render();
     renderOptions();
@@ -224,16 +240,7 @@ function render(){
     zonesEl.appendChild(div);
   });
 
-  // Check if system is armed AND at least one armed zone is tripped
-  const anyArmedZoneTripped = zones.some((tripped, i) => zoneArmed[i] && tripped);
-  
-  // Only play alarm if system is armed AND an armed zone is tripped
-  if (armed && anyArmedZoneTripped) {
-    alarmAudio.play().catch(e => console.error("Error playing alarm audio:", e));
-  } else {
-    alarmAudio.pause();
-    alarmAudio.currentTime = 0;
-  }
+
 }
 
 
@@ -494,7 +501,7 @@ async function savePinLayout(){
   fetchAll();
 }
 
-setInterval(fetchAll, 200);
+setInterval(fetchAll, 200)  ;
 fetchAll();
 </script>
 
