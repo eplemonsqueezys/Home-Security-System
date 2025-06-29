@@ -132,13 +132,11 @@
 <audio id="dingAudio"><source src="/static/ding.mp3" type="audio/mpeg"/></audio>
 
 
-
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
-
 
 async function fetchAll() {
   try {
@@ -167,21 +165,10 @@ const [dingText, alarmText] = await Promise.all([
 
 const dingFlag = dingText.trim() === '1';
 const alarmFlag = alarmText.trim() === '1';
-const playedDing = false;
 
-
-function dingSystem() {
-  if (dingFlag) {
-    if (!playedDing) {
-      sleep(1000);
-      dingSystem();
-    } else {
-      dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-      dingSystem();
-    }
-    
-
-  }
+if (dingFlag) {
+  dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
+  await fetch('/api/clear_ding');
 }
 
 if (alarmFlag) {
