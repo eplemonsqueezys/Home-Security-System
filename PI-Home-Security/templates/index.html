@@ -167,10 +167,21 @@ const [dingText, alarmText] = await Promise.all([
 
 const dingFlag = dingText.trim() === '1';
 const alarmFlag = alarmText.trim() === '1';
+const playedDing = false;
 
-if (dingFlag) {
-  dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
-  await fetch('/api/clear_ding');
+
+function dingSystem() {
+  if (dingFlag) {
+    if (!playedDing) {
+      sleep(1000);
+      dingSystem();
+    } else {
+      dingAudio.play().catch(e => console.error("Error playing ding audio:", e));
+      dingSystem();
+    }
+    
+
+  }
 }
 
 if (alarmFlag) {
