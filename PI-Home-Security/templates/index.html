@@ -222,7 +222,7 @@ function show(id){
 }
 
 function render(){
-  document.getElementById('gbtn').textContent = armed ? 'Disarm All' : 'Arm All';
+  document.getElementById('gbtn').textContent = armed ? 'Disable System' : 'Enable System';
   document.getElementById('gbtn').className = armed ? 'arm-btn disarm' : 'arm-btn save';
 
   const zonesEl = document.getElementById('zones');
