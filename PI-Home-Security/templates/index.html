@@ -131,31 +131,13 @@
 <audio id="alarmAudio" loop><source src="/static/alarm.mp3" type="audio/mpeg"/></audio>
 <audio id="dingAudio"><source src="/static/ding.mp3" type="audio/mpeg"/></audio>
 
-<button id="enableAudioButton">Enable Sound</button>
+
 
 <script>
 let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
 const alarmAudio = document.getElementById('alarmAudio');
 const dingAudio = document.getElementById('dingAudio');
-
-// --- Audio Playback "Unlocker" ---
-document.getElementById('enableAudioButton').onclick = () => {
-    alarmAudio.play().then(() => {
-        alarmAudio.pause();
-        alarmAudio.currentTime = 0;
-        console.log("Alarm audio unlocked.");
-    }).catch(e => console.warn("Could not play alarm audio initially (likely browser policy):", e));
-
-    dingAudio.play().then(() => {
-        dingAudio.pause();
-        dingAudio.currentTime = 0;
-        console.log("Ding audio unlocked.");
-        document.getElementById('enableAudioButton').style.display = 'none';
-    }).catch(e => console.warn("Could not play ding audio initially (likely browser policy):", e));
-};
-// --- End Audio Playback "Unlocker" ---
-
 
 async function fetchAll() {
   try {
