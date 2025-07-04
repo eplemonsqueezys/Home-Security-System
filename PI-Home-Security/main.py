@@ -383,6 +383,7 @@ def zone_status():
             'zone_armed': zone_armed,
             'zone_labels': zone_labels,
             'pin_layout': serializable_pin_layout,
+            'schedules': schedules,  # Added schedules to response
             'mode': mode,
             'home_mode_zones': home_mode_zones,
             'away_mode_zones': away_mode_zones,
@@ -681,5 +682,5 @@ if __name__ == '__main__':
         if not os.path.exists(f'static/{flag_file}'):
             with open(f'static/{flag_file}', 'w') as f:
                 f.write('0')
-#hello world
+
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
