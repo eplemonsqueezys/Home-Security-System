@@ -921,6 +921,16 @@ tr:nth-child(even) {
     show('status');
     pollInterval = setInterval(fetchAll, 2000);
     fetchAll();
+    // Global error handler
+    window.addEventListener('error', (event) => {
+        console.error('Critical Error:', event.message);
+        alert('A critical error has occurred. Please check the console for details.');
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('Critical Error (Unhandled Promise Rejection):', event.reason);
+        alert('A critical error has occurred. Please check the console for details.');
+    });
     </script>
 
 </body>
