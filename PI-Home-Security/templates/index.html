@@ -889,17 +889,17 @@ tr:nth-child(even) {
     }
     
     async function savePinLayout(){
-        const newPinLayout = {};
+        const newPinLayout = []; // Initialize as an array
         pinsupdated = false;
         for (let i = 0; i < zoneLabels.length; i++) {
             const input = document.getElementById(`pin-${i}`);
             if (input) {
                 const pinValue = parseInt(input.value) || 0;
                 if (pinValue < 0) {
-                    alert(`Invalid pin value for zone ${i+1}. Must be positive number.`);
+                    alert(`Invalid pin value for zone ${i+1}. Must be a positive number.`);
                     return;
                 }
-                newPinLayout[i] = pinValue;
+                newPinLayout[i] = pinValue; // Properly index the array
             }
         }
     
