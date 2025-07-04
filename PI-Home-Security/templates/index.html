@@ -590,7 +590,7 @@ function render(){
     // Update status indicator
     armedIndicator.className = armed ? 'status-indicator status-armed' : 'status-indicator status-disarmed';
     systemStatusText.textContent = armed ? 'ARMED' : 'DISARMED';
-    systemStatusText.style.color = armed ? '#27ae60' : '#e74c3c'; 
+    systemStatusText.style.color = armed ? '#e74c3c' : '#27ae60'; 
     modeDisplay.textContent = mode === 'home' ? 'Home' : 'Away';
     modeDisplay.style.fontWeight = 'bold';
     systemStatusText.textContent = armed ? 'System Armed' : 'System Disarmed';
