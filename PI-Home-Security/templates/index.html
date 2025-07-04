@@ -538,9 +538,15 @@ async function checkFlags() {
         const dingFlag = (await dingRes.text()).trim() === '1';
 
         if (audioEnabled) {
-            // Handle alarm sound
-            if (alarmFlag) {
-                alarmAudio.play().catch(e => console.error("Alarm play error:", e));
+            // Handle alarm sound - only play if system is armed and alarm flag is set
+            if (alarmFlag && armed) {
+                try {
+                    await alarmAudio.play();
+                } catch(e) {
+                    console.error("Alarm play error:", e);
+                    // Try again after a short delay
+                    setTimeout(() => alarmAudio.play().catch(e => console.error("Retry alarm play error:", e)), 1000);
+                }
             } else {
                 alarmAudio.pause();
                 alarmAudio.currentTime = 0;
@@ -552,6 +558,10 @@ async function checkFlags() {
                 // Clear ding flag after playing
                 setTimeout(() => fetch('/api/clear_ding'), 1000);
             }
+        } else {
+            // Ensure sounds are stopped if audio is muted
+            alarmAudio.pause();
+            dingAudio.pause();
         }
 
     } catch (e) {

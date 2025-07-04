@@ -249,11 +249,13 @@ def alarm_watcher():
             current_relay_output_state = GPIO.LOW
 
             with lock:
+                # Check if any armed zone is tripped
                 for i, tripped in enumerate(zone_state):
                     if i < len(zone_armed) and zone_armed[i] and tripped:
                         current_triggered_by_armed_zone = True
                         break
 
+                # Set relay state based on armed status and zone trips
                 current_relay_output_state = GPIO.HIGH if (armed and current_triggered_by_armed_zone) else GPIO.LOW
 
                 if current_relay_output_state != last_relay_state:
@@ -267,15 +269,16 @@ def alarm_watcher():
                             logger.error(f"ERROR: Could not control relay pin {p}: {e}")
                     last_relay_state = current_relay_output_state
 
-                # Handle alarm flag
+                # Handle alarm flag - only set if system is armed and zone is tripped
                 if armed and current_triggered_by_armed_zone:
-                    alarm_triggered = True
-                    try:
-                        with open("static/alarm.flag", "w") as f: 
-                            f.write("1")
-                        logger.info("Alarm flag set for armed zone tripped.")
-                    except IOError as e:
-                        logger.error(f"[ALARM FLAG ERROR] Could not write static/alarm.flag: {e}")
+                    if not alarm_triggered:
+                        alarm_triggered = True
+                        try:
+                            with open("static/alarm.flag", "w") as f: 
+                                f.write("1")
+                            logger.info("Alarm flag set for armed zone tripped.")
+                        except IOError as e:
+                            logger.error(f"[ALARM FLAG ERROR] Could not write static/alarm.flag: {e}")
                 elif alarm_triggered:
                     alarm_triggered = False
                     try:
