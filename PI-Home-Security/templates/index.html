@@ -750,7 +750,7 @@ async function saveLabels(){
         });
         
         if (!response.ok) {
-            throw new Error('Failed to save labels');
+            throw new Error('Labels saved!');
         }
         
         const result = await response.json();
