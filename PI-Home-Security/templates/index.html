@@ -698,13 +698,13 @@ function fillPins(){
     zoneLabels.forEach((label, i) => {
         const row = document.createElement('tr');
         const currentPin = pinLayout[i] || 0;
-        console.log(`Zone ${i}: Label="${label}", Pin=${currentPin}`);
         row.innerHTML = `
             <td>${i + 1}</td>
             <td>${label}</td>
             <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
         `;
         pinListBody.appendChild(row);
+        console.log(`Pin for zone ${i + 1} (${label}): ${currentPin}`);
     });
 }
 
