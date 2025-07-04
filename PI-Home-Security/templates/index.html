@@ -692,6 +692,7 @@ function renderSchedules(){
 }
 
 function fillPins(){
+    console.log('Filling pins ran');
     const pinListBody = document.getElementById('plist');
     pinListBody.innerHTML = '';
 
@@ -704,9 +705,7 @@ function fillPins(){
             <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
         `;
         pinListBody.appendChild(row);
-        console.log(`Pin for zone ${i + 1} (${label}): ${currentPin}`);
     });
-    console.log('Pin layout:', pinLayout);
 }
 
 async function toggleZone(i){
