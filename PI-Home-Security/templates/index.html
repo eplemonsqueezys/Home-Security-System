@@ -910,7 +910,6 @@ tr:nth-child(even) {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(newPinLayout)
             });
-            alert('Pin layout saved!');
             await fetchAll();
         } finally {
             hideLoading();
