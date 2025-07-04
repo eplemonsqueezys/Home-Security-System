@@ -375,21 +375,25 @@ def index():
 
 @app.route('/api/zone_status')
 def zone_status():
-    with lock:
-        serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
-        return jsonify({
-            'armed': armed,
-            'zones': zone_state,
-            'zone_armed': zone_armed,
-            'zone_labels': zone_labels,
-            'pin_layout': serializable_pin_layout,
-            'schedules': schedules,  # Added schedules to response
-            'mode': mode,
-            'home_mode_zones': home_mode_zones,
-            'away_mode_zones': away_mode_zones,
-            'zone_ding_unarmed': zone_ding_unarmed,
-            'system_time': datetime.datetime.now().isoformat()
-        })
+    try:
+        with lock:
+            serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
+            return jsonify({
+                'armed': armed,
+                'zones': zone_state,
+                'zone_armed': zone_armed,
+                'zone_labels': zone_labels,
+                'pin_layout': serializable_pin_layout,
+                'schedules': schedules,  # Added schedules to response
+                'mode': mode,
+                'home_mode_zones': home_mode_zones,
+                'away_mode_zones': away_mode_zones,
+                'zone_ding_unarmed': zone_ding_unarmed,
+                'system_time': datetime.datetime.now().isoformat()
+            })
+    except Exception as e:
+        logger.error(f"Error in /api/zone_status: {e}")
+        return jsonify({'error': 'Unable to retrieve zone status.'}), 401
 
 @app.route('/api/arm', methods=['POST'])
 def api_arm():
