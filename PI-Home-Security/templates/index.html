@@ -439,6 +439,7 @@ tr:nth-child(even) {
     let lastUpdateTime = new Date();
     let pollInterval;
     let isProcessing = false;
+    let pinsupdated = false;
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -587,7 +588,7 @@ tr:nth-child(even) {
         // Update global armed button
         gbtn.textContent = armed ? 'DISARM SYSTEM' : 'ARM SYSTEM';
         gbtn.className = armed ? 'arm-btn disarm' : 'arm-btn save';
-    
+        
         // Update status indicator
         armedIndicator.className = armed ? 'status-indicator status-armed' : 'status-indicator status-disarmed';
         systemStatusText.textContent = armed ? 'ARMED' : 'DISARMED';
@@ -696,7 +697,11 @@ tr:nth-child(even) {
     }
     
     function fillPins(){
-        console.log('Filling pins ran');
+        if (pinsupdated == true) {
+            console.log('Pins already updated, skipping fillPins');
+            return;
+        } else {
+            console.log('Filling pins ran');
         const pinListBody = document.getElementById('plist');
         pinListBody.innerHTML = '';
     
@@ -709,7 +714,10 @@ tr:nth-child(even) {
                 <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
             `;
             pinListBody.appendChild(row);
+            pinsupdated = true;
         });
+    }
+        
     }
     
     async function toggleZone(i){
@@ -882,7 +890,7 @@ tr:nth-child(even) {
     
     async function savePinLayout(){
         const newPinLayout = {};
-    
+        pinsupdated = false;
         for (let i = 0; i < zoneLabels.length; i++) {
             const input = document.getElementById(`pin-${i}`);
             if (input) {
