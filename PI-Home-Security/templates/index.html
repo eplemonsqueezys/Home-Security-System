@@ -432,8 +432,9 @@ tr:nth-child(even) {
 </div>
 
 <script>
-let armed, zones, zoneArmed, zoneLabels, pinLayout, schedules;
+let armed, zones, zoneArmed, zoneLabels, pinLayout;
 let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
+let schedules = [];
 let audioEnabled = true;
 let lastUpdateTime = new Date();
 let pollInterval;
@@ -679,6 +680,9 @@ function renderSchedules(){
     const scheduleBody = document.getElementById('sched');
     scheduleBody.innerHTML = '';
 
+    // FIX: Add null check before forEach
+    if (!schedules) return;
+    
     schedules.forEach(s => {
         const row = document.createElement('tr');
         row.innerHTML = `
