@@ -439,6 +439,7 @@ tr:nth-child(even) {
     let lastUpdateTime = new Date();
     let pollInterval;
     let isProcessing = false;
+    let isPinInputFocused = false;
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -518,7 +519,11 @@ tr:nth-child(even) {
             renderOptions();
             renderModes();
             renderSchedules();
-            fillPins();
+            
+            // Only refresh pin inputs if not currently focused
+            if (!isPinInputFocused) {
+                fillPins();
+            }
     
             // Check for alarm/ding flags
             await checkFlags();
@@ -708,6 +713,16 @@ tr:nth-child(even) {
                 <td>${label}</td>
                 <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
             `;
+            
+            // Add focus/blur event listeners
+            const input = row.querySelector('input');
+            input.addEventListener('focus', () => {
+                isPinInputFocused = true;
+            });
+            input.addEventListener('blur', () => {
+                isPinInputFocused = false;
+            });
+            
             pinListBody.appendChild(row);
         });
     }
