@@ -807,7 +807,7 @@ tr:nth-child(even) {
     }
     
     async function setMode(newMode){
-        showLoading();
+        showLoading(); //hi
         try {
             await fetch('/api/set_mode', {
                 method: 'POST',
@@ -920,7 +920,7 @@ tr:nth-child(even) {
     show('status');
     pollInterval = setInterval(fetchAll, 1000);
     fetchAll();
-    // Global error handler
+    // Global error handler 
     window.addEventListener('error', (event) => {
         console.error('Critical Error:', event.message);
         alert('A critical error has occurred. Please Manually reboot the system.');
