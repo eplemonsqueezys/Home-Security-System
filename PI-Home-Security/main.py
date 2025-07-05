@@ -5,8 +5,6 @@ import json
 import os
 import atexit
 import logging
-import signal
-import sys
 from collections import defaultdict
 import datetime
 
@@ -667,22 +665,6 @@ def system_info():
         'zones_count': len(zone_labels),
         'version': '1.3.1'
     })
-
-@app.route('/api/reboot', methods=['POST'])
-def api_reboot():
-    logger.warning("Reboot requested via API. Restarting system...")
-    
-    # Schedule the restart after a short delay to allow the response to be sent
-    threading.Timer(1.0, restart_application).start()
-    
-    return jsonify({"status": "rebooting", "message": "System will restart shortly"})
-
-def restart_application():
-    logger.info("Restarting application...")
-    
-    os.kill(os.getpid(), signal.SIGINT)
-    
-    # os.system("sudo systemctl restart your-service-name.service")
 
 # --- Cleanup on Exit ---
 def cleanup():
