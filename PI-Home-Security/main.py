@@ -113,9 +113,9 @@ def setup_zone_pins(new_pins):
 
 def setup_relay_pins():
     with lock:
-        free_pins(RELAY_PINS)
         for pin in RELAY_PINS:
             try:
+                GPIO.cleanup(pin)  # Ensure the pin is cleaned up before setup
                 GPIO.setup(pin, GPIO.OUT)
                 GPIO.output(pin, GPIO.LOW)
                 logger.info(f"GPIO: Setup output pin {pin} to LOW")
