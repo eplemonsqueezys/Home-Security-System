@@ -69,7 +69,7 @@ away_mode_zones = []
 mode = "away"
 schedule_id_counter = 0
 current_zone_pins = []
-lock = threading.Lock()
+lock = threading.RLock()  # Changed to RLock to prevent deadlocks
 executed_schedules_today = set()
 schedule_runner_active = True
 alarm_triggered = False
@@ -82,7 +82,10 @@ GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
 def free_pins(pins):
+    """Must be called while holding the lock"""
     for pin in pins:
+        if pin == 0:  # Skip unassigned pins
+            continue
         try:
             GPIO.cleanup(pin)
             logger.info(f"GPIO: Cleaned up pin {pin}")
@@ -218,8 +221,10 @@ def load_config():
         setup_zone_pins(pins)
         save_config()
 
-setup_relay_pins()
-load_config()
+# Initialize GPIO under lock protection
+with lock:
+    setup_relay_pins()
+    load_config()
 
 # --- Background Threads ---
 def poll_zones():
@@ -666,9 +671,10 @@ def cleanup():
     global schedule_runner_active
     schedule_runner_active = False
     time.sleep(0.5)
-    free_pins(current_zone_pins)
-    free_pins(RELAY_PINS)
-    GPIO.cleanup()
+    with lock:
+        free_pins(current_zone_pins)
+        free_pins(RELAY_PINS)
+        GPIO.cleanup()
     logger.info("Application exiting. GPIO cleanup complete.")
 
 atexit.register(cleanup) 
