@@ -695,7 +695,6 @@ tr:nth-child(even) {
         });
     }
     
-   
     function fillPins(){
         const pinListBody = document.getElementById('plist');
         pinListBody.innerHTML = '';
@@ -882,7 +881,8 @@ tr:nth-child(even) {
     }
     
     async function savePinLayout(){
-        const newPinLayout = {};  // Initialize as an object
+        // Create an object with string keys for zone indices
+        const newPinLayout = {};
         
         for (let i = 0; i < zoneLabels.length; i++) {
             const input = document.getElementById(`pin-${i}`);
@@ -892,18 +892,29 @@ tr:nth-child(even) {
                     alert(`Invalid pin value for zone ${i+1}. Must be a positive number.`);
                     return;
                 }
-                newPinLayout[i] = pinValue;  // Set as object property
+                // Use string key (important for backend)
+                newPinLayout[i.toString()] = pinValue;
             }
         }
     
         showLoading();
         try {
-            await fetch('/api/set_pin_layout', {
+            const response = await fetch('/api/set_pin_layout', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(newPinLayout)
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save pin layout');
+            }
+            
             await fetchAll();
+            alert('Pin layout saved successfully!');
+        } catch (error) {
+            console.error('Error saving pin layout:', error);
+            alert(`Error: ${error.message}`);
         } finally {
             hideLoading();
         }
