@@ -292,6 +292,37 @@ tr:nth-child(even) {
     text-align: center;
     padding-top: 20%;
 }
+
+/* Table styles for mode zones */
+.mode-zones-table {
+    width: 100%;
+    margin: 1em 0;
+    border-collapse: collapse;
+}
+
+.mode-zones-table th {
+    background-color: var(--light);
+    padding: 10px;
+    text-align: left;
+}
+
+.mode-zones-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.mode-zones-table tr:last-child td {
+    border-bottom: none;
+}
+
+.mode-zones-table input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.mode-zones-table label {
+    display: flex;
+    align-items: center;
+}
 </style>
 </head>
 <body>
@@ -354,18 +385,22 @@ tr:nth-child(even) {
         </div>
 
         <div class="card">
-            <h3 class="card-title">Home Mode Zones</h3>
-            <p>Select which zones should be armed when in Home mode</p>
-            <div id="homezones-list" class="zone-list"></div>
+            <h3 class="card-title">Mode Zone Configuration</h3>
+            <p>Select which zones should be armed in each mode:</p>
+            <div class="mode-zones-container">
+                <table class="mode-zones-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Home Mode</th>
+                            <th>Away Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mode-zones-table"></tbody>
+                </table>
+            </div>
+            <button onclick="saveHomeAwayZones()" style="margin-top: 1em;">Save Mode Configurations</button>
         </div>
-
-        <div class="card">
-            <h3 class="card-title">Away Mode Zones</h3>
-            <p>Select which zones should be armed when in Away mode</p>
-            <div id="awayzones-list" class="zone-list"></div>
-        </div>
-
-        <button onclick="saveHomeAwayZones()">Save Mode Configurations</button>
     </div>
 
     <div id="schedules" style="display:none;">
@@ -440,6 +475,7 @@ tr:nth-child(even) {
     let pollInterval;
     let isProcessing = false;
     let isPinInputFocused = false;
+    let isModeInputFocused = false;
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -648,36 +684,51 @@ tr:nth-child(even) {
         document.getElementById('homeModeOption').classList.toggle('active', mode === 'home');
         document.getElementById('awayModeOption').classList.toggle('active', mode === 'away');
     
-        // Render home mode zones
-        const homeZonesListEl = document.getElementById('homezones-list');
-        homeZonesListEl.innerHTML = '';
+        // Render mode zones table
+        const tableBody = document.getElementById('mode-zones-table');
+        tableBody.innerHTML = '';
     
         zoneLabels.forEach((label, i) => {
-            const zoneItem = document.createElement('div');
-            zoneItem.className = 'zone-item';
-            zoneItem.innerHTML = `
-                <input type="checkbox" id="home-zone-${i}" 
-                    ${homeModeZones.includes(i) ? 'checked' : ''}
-                    value="${i}">
-                <label for="home-zone-${i}">${label}</label>
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${label}</td>
+                <td>
+                    <label>
+                        <input type="checkbox" id="home-zone-${i}" 
+                            ${homeModeZones.includes(i) ? 'checked' : ''}
+                            value="${i}">
+                        Enable
+                    </label>
+                </td>
+                <td>
+                    <label>
+                        <input type="checkbox" id="away-zone-${i}" 
+                            ${awayModeZones.includes(i) ? 'checked' : ''}
+                            value="${i}">
+                        Enable
+                    </label>
+                </td>
             `;
-            homeZonesListEl.appendChild(zoneItem);
-        });
-    
-        // Render away mode zones
-        const awayZonesListEl = document.getElementById('awayzones-list');
-        awayZonesListEl.innerHTML = '';
-    
-        zoneLabels.forEach((label, i) => {
-            const zoneItem = document.createElement('div');
-            zoneItem.className = 'zone-item';
-            zoneItem.innerHTML = `
-                <input type="checkbox" id="away-zone-${i}" 
-                    ${awayModeZones.includes(i) ? 'checked' : ''}
-                    value="${i}">
-                <label for="away-zone-${i}">${label}</label>
-            `;
-            awayZonesListEl.appendChild(zoneItem);
+            
+            // Add focus/blur event listeners to prevent refresh while interacting
+            const homeCheckbox = row.querySelector(`#home-zone-${i}`);
+            const awayCheckbox = row.querySelector(`#away-zone-${i}`);
+            
+            homeCheckbox.addEventListener('focus', () => {
+                isModeInputFocused = true;
+            });
+            awayCheckbox.addEventListener('focus', () => {
+                isModeInputFocused = true;
+            });
+            
+            homeCheckbox.addEventListener('blur', () => {
+                isModeInputFocused = false;
+            });
+            awayCheckbox.addEventListener('blur', () => {
+                isModeInputFocused = false;
+            });
+            
+            tableBody.appendChild(row);
         });
     }
     
@@ -829,14 +880,20 @@ tr:nth-child(even) {
     
     async function saveHomeAwayZones(){
         const homeZones = [];
-        document.querySelectorAll('#homezones-list input[type="checkbox"]').forEach(cb => {
-            if (cb.checked) homeZones.push(parseInt(cb.value));
-        });
-    
         const awayZones = [];
-        document.querySelectorAll('#awayzones-list input[type="checkbox"]').forEach(cb => {
-            if (cb.checked) awayZones.push(parseInt(cb.value));
-        });
+        
+        // Collect selections from the table
+        for (let i = 0; i < zoneLabels.length; i++) {
+            const homeCheckbox = document.getElementById(`home-zone-${i}`);
+            const awayCheckbox = document.getElementById(`away-zone-${i}`);
+            
+            if (homeCheckbox && homeCheckbox.checked) {
+                homeZones.push(i);
+            }
+            if (awayCheckbox && awayCheckbox.checked) {
+                awayZones.push(i);
+            }
+        }
     
         showLoading();
         try {
