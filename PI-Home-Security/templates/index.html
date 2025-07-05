@@ -293,7 +293,31 @@ tr:nth-child(even) {
     padding-top: 20%;
 }
 
-/* Table styles for mode zones */
+.reboot-section {
+    background-color: #f8d7da;
+    border-left: 4px solid #dc3545;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 4px;
+}
+
+.reboot-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+    display: inline-block;
+    margin-top: 10px;
+}
+
+.reboot-btn:hover {
+    background-color: #c82333;
+}
+
 .mode-zones-table {
     width: 100%;
     margin: 1em 0;
@@ -366,6 +390,15 @@ tr:nth-child(even) {
             <p>Select zones that should play a "ding" sound when tripped, even if the system is unarmed.</p>
             <div id="ding-zones-list" class="zone-list"></div>
             <button onclick="saveDingZones()">Save Ding Zones</button>
+        </div>
+        
+        <div class="card">
+            <h3 class="card-title">System Maintenance</h3>
+            <div class="reboot-section">
+                <p><strong>Reboot System</strong></p>
+                <p>This will restart the alarm system software. Use if the system becomes unresponsive.</p>
+                <button class="reboot-btn" onclick="rebootSystem()">Reboot System</button>
+            </div>
         </div>
     </div>
 
@@ -553,7 +586,12 @@ tr:nth-child(even) {
     
             render();
             renderOptions();
-            renderModes();
+            
+            // Only refresh mode zones if not currently focused
+            if (!isModeInputFocused) {
+                renderModes();
+            }
+            
             renderSchedules();
             
             // Only refresh pin inputs if not currently focused
@@ -682,7 +720,7 @@ tr:nth-child(even) {
     function renderModes(){
         // Update mode options
         document.getElementById('homeModeOption').classList.toggle('active', mode === 'home');
-        document.getElementById('awayModeOption').classList.toggle('active', mode === 'away');
+        document.getElementById('awayModeOption').classlist.toggle('active', mode === 'away');
     
         // Render mode zones table
         const tableBody = document.getElementById('mode-zones-table');
@@ -986,6 +1024,31 @@ tr:nth-child(even) {
             alert('Pin layout saved successfully!');
         } catch (error) {
             console.error('Error saving pin layout:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function rebootSystem() {
+        if (!confirm('WARNING: This will restart the system. Are you sure?')) {
+            return;
+        }
+        
+        showLoading();
+        try {
+            const response = await fetch('/api/reboot', {
+                method: 'POST'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Reboot failed');
+            }
+            
+            alert('System is rebooting. Please wait about 10 seconds and refresh the page.');
+        } catch (error) {
+            console.error('Reboot error:', error);
             alert(`Error: ${error.message}`);
         } finally {
             hideLoading();
