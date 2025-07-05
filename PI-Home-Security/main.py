@@ -1,4 +1,5 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import threading
 import time
 import json
@@ -7,6 +8,8 @@ import atexit
 import logging
 from collections import defaultdict
 import datetime
+import bcrypt
+import secrets
 
 # Configure logging
 logging.basicConfig(
@@ -51,9 +54,95 @@ except ImportError:
     GPIO = MockGPIO()
 
 app = Flask(__name__)
+app.secret_key = secrets.token_hex(32)  # Generate secure secret key
 CONFIG_FILE = "config.json"
+USER_FILE = "users.json"
 DEFAULT_ZONE_PINS = [4, 17, 18, 27, 22, 16, 24, 25]
 RELAY_PINS = [23]
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# User class for Flask-Login
+class User(UserMixin):
+    def __init__(self, id, username, password, is_admin=False):
+        self.id = id
+        self.username = username
+        self.password = password
+        self.is_admin = is_admin
+
+    def verify_password(self, password):
+        return bcrypt.checkpw(password.encode('utf-8'), self.password.encode('utf-8'))
+
+# User management functions
+def load_users():
+    if not os.path.exists(USER_FILE):
+        # Create default admin user if no user file exists
+        hashed = bcrypt.hashpw(b'admin', bcrypt.gensalt()).decode('utf-8')
+        return {
+            "1": {
+                "username": "admin",
+                "password": hashed,
+                "is_admin": True
+            }
+        }
+    
+    try:
+        with open(USER_FILE, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading users: {e}")
+        return {}
+
+def save_users(users):
+    try:
+        with open(USER_FILE, 'w') as f:
+            json.dump(users, f, indent=4)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving users: {e}")
+        return False
+
+def create_user(username, password, is_admin=False):
+    users = load_users()
+    user_id = str(max([int(k) for k in users.keys()] + [0]) + 1)
+    hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    users[user_id] = {
+        'username': username,
+        'password': hashed,
+        'is_admin': is_admin
+    }
+    return save_users(users)
+
+def update_user(user_id, username=None, password=None, is_admin=None):
+    users = load_users()
+    if user_id in users:
+        if username:
+            users[user_id]['username'] = username
+        if password:
+            hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+            users[user_id]['password'] = hashed
+        if is_admin is not None:
+            users[user_id]['is_admin'] = is_admin
+        return save_users(users)
+    return False
+
+def delete_user(user_id):
+    users = load_users()
+    if user_id in users:
+        del users[user_id]
+        return save_users(users)
+    return False
+
+@login_manager.user_loader
+def load_user(user_id):
+    users = load_users()
+    user_data = users.get(user_id)
+    if user_data:
+        return User(user_id, user_data['username'], user_data['password'], user_data.get('is_admin', False))
+    return None
 
 # Global state variables
 armed = False
@@ -374,11 +463,89 @@ threading.Thread(target=alarm_watcher, daemon=True).start()
 threading.Thread(target=schedule_runner, daemon=True).start()
 
 # --- Flask Routes ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        users = load_users()
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        for user_id, user_data in users.items():
+            if user_data['username'] == username:
+                if bcrypt.checkpw(password.encode('utf-8'), user_data['password'].encode('utf-8')):
+                    user = User(user_id, username, user_data['password'], user_data.get('is_admin', False))
+                    login_user(user)
+                    return redirect(url_for('index'))
+        
+        return render_template('login.html', error="Invalid credentials")
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
-    return render_template('index.html')
+    return render_template('index.html', current_user=current_user)
+
+# User Management API
+@app.route('/api/users')
+@login_required
+def api_users():
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    users = load_users()
+    return jsonify(users)
+
+@app.route('/api/create_user', methods=['POST'])
+@login_required
+def api_create_user():
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    is_admin = data.get('is_admin', False)
+    
+    if not username or not password:
+        return jsonify({'error': 'Missing username or password'}), 400
+    
+    if create_user(username, password, is_admin):
+        return jsonify({'success': True}), 201
+    return jsonify({'error': 'Failed to create user'}), 500
+
+@app.route('/api/update_user/<user_id>', methods=['POST'])
+@login_required
+def api_update_user(user_id):
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    is_admin = data.get('is_admin')
+    
+    if update_user(user_id, username, password, is_admin):
+        return jsonify({'success': True}), 200
+    return jsonify({'error': 'Failed to update user'}), 500
+
+@app.route('/api/delete_user/<user_id>', methods=['POST'])
+@login_required
+def api_delete_user(user_id):
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if delete_user(user_id):
+        return jsonify({'success': True}), 200
+    return jsonify({'error': 'Failed to delete user'}), 500
 
 @app.route('/api/zone_status')
+@login_required
 def zone_status():
     with lock:
         serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
@@ -393,10 +560,15 @@ def zone_status():
             'home_mode_zones': home_mode_zones,
             'away_mode_zones': away_mode_zones,
             'zone_ding_unarmed': zone_ding_unarmed,
-            'system_time': datetime.datetime.now().isoformat()
+            'system_time': datetime.datetime.now().isoformat(),
+            'current_user': {
+                'username': current_user.username,
+                'is_admin': current_user.is_admin
+            }
         })
 
 @app.route('/api/arm', methods=['POST'])
+@login_required
 def api_arm():
     global armed
     data = request.json or {}
@@ -412,6 +584,7 @@ def api_arm():
     return ('', 204)
 
 @app.route('/api/zone_arm', methods=['POST'])
+@login_required
 def api_zone_arm():
     data = request.json or {}
     idx = data.get('index')
@@ -429,6 +602,7 @@ def api_zone_arm():
             return jsonify({'error': f'Zone index {idx} out of bounds (0-{len(zone_armed)-1}).'}), 400
 
 @app.route('/api/set_labels', methods=['POST'])
+@login_required
 def api_set_labels():
     data = request.get_json() or {}
     labs = data.get('labels', [])
@@ -496,6 +670,7 @@ def api_set_labels():
         })
 
 @app.route('/api/set_ding_zones', methods=['POST'])
+@login_required
 def api_set_ding_zones():
     data = request.json or {}
     ding_zones = data.get("ding_zones", [])
@@ -510,6 +685,7 @@ def api_set_ding_zones():
         return ('', 204)
 
 @app.route('/api/set_mode', methods=['POST'])
+@login_required
 def api_set_mode():
     global mode, zone_armed
     data = request.json or {}
@@ -530,6 +706,7 @@ def api_set_mode():
         return ('', 204)
 
 @app.route('/api/set_mode_zones', methods=['POST'])
+@login_required
 def api_set_mode_zones():
     data = request.json or {}
     home_config = data.get("home", [])
@@ -547,6 +724,7 @@ def api_set_mode_zones():
         return ('', 204)
 
 @app.route('/api/clear_ding')
+@login_required
 def clear_ding():
     global ding_triggered
     ding_triggered = False
@@ -559,6 +737,7 @@ def clear_ding():
     return ('', 204)
 
 @app.route('/api/clear_alarm')
+@login_required
 def clear_alarm():
     global alarm_triggered
     alarm_triggered = False
@@ -571,11 +750,13 @@ def clear_alarm():
     return ('', 204)
 
 @app.route('/api/schedules')
+@login_required
 def api_schedules():
     with lock:
         return jsonify(schedules)
 
 @app.route('/api/add_schedule', methods=['POST'])
+@login_required
 def api_add_schedule():
     global schedule_id_counter
     data = request.json or {}
@@ -600,6 +781,7 @@ def api_add_schedule():
         return jsonify(new_schedule), 201
 
 @app.route('/api/delete_schedule', methods=['POST'])
+@login_required
 def api_delete_schedule():
     data = request.json or {}
     sched_id = data.get('id')
@@ -619,6 +801,7 @@ def api_delete_schedule():
             return jsonify({'error': f'Schedule with ID {sched_id} not found.'}), 404
 
 @app.route('/api/set_pin_layout', methods=['POST'])
+@login_required
 def api_set_pin_layout():
     data = request.json or {}
 
@@ -659,11 +842,12 @@ def api_set_pin_layout():
         return ('', 204)
 
 @app.route('/api/system_info')
+@login_required
 def system_info():
     return jsonify({
         'system_time': datetime.datetime.now().isoformat(),
         'zones_count': len(zone_labels),
-        'version': '1.3.1'
+        'version': '1.4.0'
     })
 
 # --- Cleanup on Exit ---
