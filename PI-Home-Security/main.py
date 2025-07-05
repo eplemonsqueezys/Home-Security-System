@@ -116,9 +116,12 @@ def setup_relay_pins():
         for pin in RELAY_PINS:
             try:
                 GPIO.cleanup(pin)  # Ensure the pin is cleaned up before setup
-                GPIO.setup(pin, GPIO.OUT)
-                GPIO.output(pin, GPIO.LOW)
-                logger.info(f"GPIO: Setup output pin {pin} to LOW")
+                GPIO.setup(pin, GPIO.OUT)  # Set up the pin as OUTPUT
+                if GPIO.gpio_function(pin) == GPIO.OUT:  # Verify pin is set as OUTPUT
+                    GPIO.output(pin, GPIO.LOW)  # Set the pin to LOW
+                    logger.info(f"GPIO: Setup output pin {pin} to LOW")
+                else:
+                    logger.error(f"[GPIO SETUP ERROR] Pin {pin} could not be set as OUTPUT.")
             except Exception as e:
                 logger.error(f"[GPIO OUTPUT ERROR] Relay pin {pin}: {e}")
 
