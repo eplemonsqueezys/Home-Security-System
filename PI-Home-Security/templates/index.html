@@ -439,7 +439,6 @@ tr:nth-child(even) {
     let lastUpdateTime = new Date();
     let pollInterval;
     let isProcessing = false;
-    let pinsupdated = false;
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -697,27 +696,20 @@ tr:nth-child(even) {
     }
     
     function fillPins(){
-        if (pinsupdated == true) {
-            console.log('Pins already updated, skipping fillPins');
-            return;
-        } else {
-            console.log('Filling pins ran');
         const pinListBody = document.getElementById('plist');
         pinListBody.innerHTML = '';
     
         zoneLabels.forEach((label, i) => {
             const row = document.createElement('tr');
-            const currentPin = pinLayout[i] || 0;
+            // Use string index to get the pin
+            const currentPin = pinLayout[i.toString()] ?? 0;
             row.innerHTML = `
                 <td>${i + 1}</td>
                 <td>${label}</td>
                 <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
             `;
             pinListBody.appendChild(row);
-            pinsupdated = true;
         });
-    }
-        
     }
     
     async function toggleZone(i){
@@ -807,7 +799,7 @@ tr:nth-child(even) {
     }
     
     async function setMode(newMode){
-        showLoading(); //hi
+        showLoading();
         try {
             await fetch('/api/set_mode', {
                 method: 'POST',
@@ -889,8 +881,8 @@ tr:nth-child(even) {
     }
     
     async function savePinLayout(){
-        const newPinLayout = []; // Initialize as an array
-        pinsupdated = false;
+        const newPinLayout = {};  // Initialize as an object
+        
         for (let i = 0; i < zoneLabels.length; i++) {
             const input = document.getElementById(`pin-${i}`);
             if (input) {
@@ -899,7 +891,7 @@ tr:nth-child(even) {
                     alert(`Invalid pin value for zone ${i+1}. Must be a positive number.`);
                     return;
                 }
-                newPinLayout[i] = pinValue; // Properly index the array
+                newPinLayout[i] = pinValue;  // Set as object property
             }
         }
     
@@ -920,7 +912,7 @@ tr:nth-child(even) {
     show('status');
     pollInterval = setInterval(fetchAll, 1000);
     fetchAll();
-    // Global error handler 
+    // Global error handler
     window.addEventListener('error', (event) => {
         console.error('Critical Error:', event.message);
         alert('A critical error has occurred. Please Manually reboot the system.');
