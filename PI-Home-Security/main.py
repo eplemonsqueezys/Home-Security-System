@@ -52,8 +52,8 @@ except ImportError:
 
 app = Flask(__name__)
 CONFIG_FILE = "config.json"
-DEFAULT_ZONE_PINS = [4, 17, 18, 27, 22, 23, 24, 25]
-RELAY_PINS = [5, 6, 13, 19, 26, 20, 21, 16]
+DEFAULT_ZONE_PINS = [4, 17, 18, 27, 22, 16, 24, 25]
+RELAY_PINS = [23]
 
 # Global state variables
 armed = False
