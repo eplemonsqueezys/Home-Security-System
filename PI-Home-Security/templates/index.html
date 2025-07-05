@@ -695,6 +695,7 @@ tr:nth-child(even) {
         });
     }
     
+   
     function fillPins(){
         const pinListBody = document.getElementById('plist');
         pinListBody.innerHTML = '';
@@ -702,7 +703,7 @@ tr:nth-child(even) {
         zoneLabels.forEach((label, i) => {
             const row = document.createElement('tr');
             // Use string index to get the pin
-            const currentPin = pinLayout[i.toString()] ?? 0;
+            const currentPin = pinLayout[i.toString()] || 0;
             row.innerHTML = `
                 <td>${i + 1}</td>
                 <td>${label}</td>
