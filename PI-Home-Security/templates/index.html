@@ -24,22 +24,12 @@ body {
     color: #333;
 }
 
-header { 
+header, nav { 
     background: var(--primary); 
     color: #fff; 
     padding: 1em; 
     text-align: center; 
     box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-nav { 
-    background: var(--primary); 
-    padding: 0.5em; 
-    display: flex;
-    justify-content: center;
 }
 
 header h1 {
@@ -303,16 +293,6 @@ tr:nth-child(even) {
     padding-top: 20%;
 }
 
-.user-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.user-info {
-    font-size: 0.9rem;
-}
-
 /* Table styles for mode zones */
 .mode-zones-table {
     width: 100%;
@@ -343,86 +323,6 @@ tr:nth-child(even) {
     display: flex;
     align-items: center;
 }
-
-/* Modal styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-}
-
-.modal-content {
-    background-color: #fff;
-    margin: 15% auto;
-    padding: 20px;
-    border-radius: 5px;
-    width: 300px;
-    position: relative;
-}
-
-.close {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-form label {
-    display: block;
-    margin-top: 10px;
-}
-
-form input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-}
-
-form button {
-    width: 100%;
-    padding: 10px;
-    background-color: var(--info);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.error {
-    color: var(--danger);
-    margin-top: 10px;
-    text-align: center;
-}
-
-/* User form styles */
-#userDataForm label {
-    display: block;
-    margin-top: 10px;
-}
-
-#userDataForm input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 5px;
-    margin-bottom: 10px;
-}
-
-#userDataForm button {
-    margin-top: 10px;
-    margin-right: 10px;
-    display: inline-block;
-    width: auto;
-}
 </style>
 </head>
 <body>
@@ -431,24 +331,13 @@ form button {
     <h2>Processing Changes...</h2>
 </div>
 
-<header>
-    <h1>Alarm Dashboard</h1>
-    <div class="user-controls">
-        <div class="user-info">
-            <span id="usernameDisplay">Not logged in</span>
-            <span id="userRole"></span>
-        </div>
-        <button id="logoutBtn" style="display:none;">Logout</button>
-        <button id="loginBtn">Login</button>
-    </div>
-</header>
+<header><h1>Alarm Dashboard</h1></header>
 <nav>
     <button onclick="show('status')" class="active">Status</button>
     <button onclick="show('options')">Options</button>
     <button onclick="show('modes')">Home/Away Mode</button>
     <button onclick="show('schedules')">Schedules</button>
     <button onclick="show('pinlayout')">Pin Layout</button>
-    <button onclick="show('users')" id="usersTab" style="display:none;">User Management</button>
 </nav>
 
 <div class="content">
@@ -569,72 +458,12 @@ form button {
             <button onclick="savePinLayout()" style="margin-top: 1em;">Save Pin Layout</button>
         </div>
     </div>
-
-    <div id="users" style="display:none;">
-        <div class="card">
-            <h3 class="card-title">User Management</h3>
-            <button onclick="showCreateUserForm()">Create New User</button>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Admin</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="usersTable"></tbody>
-            </table>
-        </div>
-
-        <!-- Create/Edit User Form -->
-        <div id="userForm" style="display:none;">
-            <div class="card">
-                <h3 class="card-title" id="userFormTitle">Create User</h3>
-                <form id="userDataForm">
-                    <input type="hidden" id="userId">
-                    <label for="editUsername">Username:</label>
-                    <input type="text" id="editUsername" required>
-                    
-                    <label for="editPassword">Password:</label>
-                    <input type="password" id="editPassword">
-                    <small>(Leave blank to keep current password)</small>
-                    
-                    <label>
-                        <input type="checkbox" id="editIsAdmin">
-                        Administrator
-                    </label>
-                    
-                    <button type="submit">Save</button>
-                    <button type="button" onclick="hideUserForm()">Cancel</button>
-                </form>
-            </div>
-        </div>
-    </div>
 </div>
 
 <div class="audio-controls">
     <button id="testAlarmBtn" class="audio-btn">Test Alarm</button>
     <button id="testDingBtn" class="audio-btn">Test Doorbell</button>
     <button id="muteBtn" class="audio-btn">Mute Sounds</button>
-</div>
-
-<!-- Login Modal -->
-<div id="loginModal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2>Login</h2>
-        <form id="loginForm">
-            <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
-            
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-            
-            <button type="submit">Login</button>
-            <div id="loginError" class="error"></div>
-        </form>
-    </div>
 </div>
 
 <script>
@@ -647,7 +476,6 @@ form button {
     let isProcessing = false;
     let isPinInputFocused = false;
     let isModeInputFocused = false;
-    let currentUser = null;
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -663,13 +491,6 @@ form button {
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const muteBtn = document.getElementById('muteBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    const loginModal = document.getElementById('loginModal');
-    const closeBtn = document.querySelector('.close');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    const usernameDisplay = document.getElementById('usernameDisplay');
-    const userRole = document.getElementById('userRole');
-    const usersTab = document.getElementById('usersTab');
     
     // Test buttons
     document.getElementById('testAlarmBtn').addEventListener('click', () => {
@@ -697,21 +518,6 @@ form button {
         }
     });
     
-    // Login modal
-    loginBtn.addEventListener('click', () => {
-        loginModal.style.display = 'block';
-    });
-    
-    closeBtn.addEventListener('click', () => {
-        loginModal.style.display = 'none';
-    });
-    
-    window.addEventListener('click', (event) => {
-        if (event.target === loginModal) {
-            loginModal.style.display = 'none';
-        }
-    });
-    
     function showLoading() {
         loadingIndicator.style.display = 'block';
         isProcessing = true;
@@ -727,13 +533,7 @@ form button {
         
         try {
             const response = await fetch('/api/zone_status');
-            if (!response.ok) {
-                if (response.status === 401) {
-                    window.location.href = '/login';
-                    return;
-                }
-                throw new Error('Network response was not ok');
-            }
+            if (!response.ok) throw new Error('Network response was not ok');
     
             const js = await response.json();
             armed = js.armed;
@@ -746,16 +546,7 @@ form button {
             homeModeZones = js.home_mode_zones;
             awayModeZones = js.away_mode_zones;
             zoneDingUnarmed = js.zone_ding_unarmed;
-            
-            // Update current user info
-            if (js.current_user) {
-                currentUser = {
-                    username: js.current_user.username,
-                    is_admin: js.current_user.is_admin
-                };
-                updateUIWithUserInfo();
-            }
-
+    
             // Update last updated time
             lastUpdateTime = new Date();
             lastUpdatedEl.textContent = lastUpdateTime.toLocaleTimeString();
@@ -829,28 +620,8 @@ form button {
             activeButton.classList.add('active');
         }
     
-        ['status','options','modes','schedules','pinlayout','users']
+        ['status','options','modes','schedules','pinlayout']
             .forEach(tab => document.getElementById(tab).style.display = (tab === id ? 'block' : 'none'));
-            
-        if (id === 'users') {
-            renderUsers();
-        }
-    }
-    
-    function updateUIWithUserInfo() {
-        if (currentUser) {
-            usernameDisplay.textContent = currentUser.username;
-            userRole.textContent = currentUser.is_admin ? '(Admin)' : '(User)';
-            loginBtn.style.display = 'none';
-            logoutBtn.style.display = 'inline-block';
-            usersTab.style.display = currentUser.is_admin ? 'block' : 'none';
-        } else {
-            usernameDisplay.textContent = 'Not logged in';
-            userRole.textContent = '';
-            loginBtn.style.display = 'inline-block';
-            logoutBtn.style.display = 'none';
-            usersTab.style.display = 'none';
-        }
     }
     
     function render(){
@@ -1221,162 +992,10 @@ form button {
         }
     }
     
-    // User management functions
-    async function loadUsers() {
-        try {
-            const response = await fetch('/api/users');
-            if (!response.ok) throw new Error('Failed to load users');
-            return await response.json();
-        } catch (error) {
-            console.error('Error loading users:', error);
-            return {};
-        }
-    }
-    
-    async function renderUsers() {
-        const users = await loadUsers();
-        const table = document.getElementById('usersTable');
-        table.innerHTML = '';
-        
-        for (const [id, user] of Object.entries(users)) {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${id}</td>
-                <td>${user.username}</td>
-                <td>${user.is_admin ? 'Yes' : 'No'}</td>
-                <td>
-                    <button onclick="editUser('${id}', '${user.username}', ${user.is_admin})">Edit</button>
-                    <button onclick="deleteUser('${id}')">Delete</button>
-                </td>
-            `;
-            table.appendChild(row);
-        }
-    }
-    
-    function showCreateUserForm() {
-        document.getElementById('userFormTitle').textContent = 'Create User';
-        document.getElementById('userId').value = '';
-        document.getElementById('editUsername').value = '';
-        document.getElementById('editPassword').value = '';
-        document.getElementById('editIsAdmin').checked = false;
-        document.getElementById('userForm').style.display = 'block';
-    }
-    
-    function editUser(id, username, isAdmin) {
-        document.getElementById('userFormTitle').textContent = 'Edit User';
-        document.getElementById('userId').value = id;
-        document.getElementById('editUsername').value = username;
-        document.getElementById('editPassword').value = '';
-        document.getElementById('editIsAdmin').checked = isAdmin;
-        document.getElementById('userForm').style.display = 'block';
-    }
-    
-    function hideUserForm() {
-        document.getElementById('userForm').style.display = 'none';
-    }
-    
-    async function deleteUser(id) {
-        if (!confirm(`Are you sure you want to delete user ${id}?`)) return;
-        
-        try {
-            const response = await fetch(`/api/delete_user/${id}`, { method: 'POST' });
-            if (response.ok) {
-                renderUsers();
-            } else {
-                alert('Failed to delete user');
-            }
-        } catch (error) {
-            console.error('Error deleting user:', error);
-            alert('Error deleting user');
-        }
-    }
-    
-    // Login functionality
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        
-        try {
-            const response = await fetch('/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-            });
-            
-            if (response.redirected) {
-                window.location.href = response.url;
-            } else {
-                const error = await response.text();
-                document.getElementById('loginError').textContent = 'Invalid credentials';
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            document.getElementById('loginError').textContent = 'Login failed';
-        }
-    });
-    
-    // Logout functionality
-    logoutBtn.addEventListener('click', async () => {
-        await fetch('/logout');
-        window.location.href = '/login';
-    });
-    
-    // User form submission
-    document.getElementById('userDataForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const userId = document.getElementById('userId').value;
-        const username = document.getElementById('editUsername').value;
-        const password = document.getElementById('editPassword').value;
-        const isAdmin = document.getElementById('editIsAdmin').checked;
-        
-        try {
-            let response;
-            if (userId) {
-                // Update existing user
-                response = await fetch(`/api/update_user/${userId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        username, 
-                        password: password || null, 
-                        is_admin: isAdmin 
-                    })
-                });
-            } else {
-                // Create new user
-                response = await fetch('/api/create_user', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        username, 
-                        password, 
-                        is_admin: isAdmin 
-                    })
-                });
-            }
-            
-            if (response.ok) {
-                hideUserForm();
-                renderUsers();
-            } else {
-                const error = await response.json();
-                alert(error.error || 'Operation failed');
-            }
-        } catch (error) {
-            console.error('Error saving user:', error);
-            alert('Error saving user');
-        }
-    });
-
     // Initialize
     show('status');
     pollInterval = setInterval(fetchAll, 1000);
     fetchAll();
-    
     // Global error handler
     window.addEventListener('error', (event) => {
         console.error('Critical Error:', event.message);
@@ -1386,6 +1005,7 @@ form button {
     window.addEventListener('unhandledrejection', (event) => {
         console.error('Critical Error (Unhandled Promise Rejection):', event.reason);
         alert('A critical error has occurred. Please Manually reboot the system.');
+
     });
     
     </script>
