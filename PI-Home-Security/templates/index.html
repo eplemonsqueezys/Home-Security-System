@@ -511,7 +511,7 @@ tr:nth-child(even) {
     function updatesystem() {
         if (isProcessing) return;
         showLoading();
-        fetch('/api/update_system')
+        fetch('/api/update')
             .then(response => {
                 if (!response.ok) throw new Error('Update failed');
                 return response.json();
