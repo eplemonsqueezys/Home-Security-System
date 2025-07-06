@@ -5,7 +5,7 @@ import json
 import os
 import atexit
 import logging
-from collections import defaultdict
+# Removed unused import
 import datetime
 import subprocess
 import sys
@@ -54,15 +54,21 @@ except ImportError:
         PUD_UP = 20
         
         def setmode(self, mode): 
-            logger.info("Mock GPIO: setmode called")
+            self.mode = mode
+            logger.info(f"Mock GPIO: setmode called with mode {mode}")
             
         def setwarnings(self, state): 
-            logger.info("Mock GPIO: setwarnings called")
+            self.state = state
+            logger.info(f"Mock GPIO: setwarnings called with state {state}")
             
         def setup(self, pin, mode, pull_up_down=None):
-            logger.info(f"Mock GPIO: Setup pin {pin} as {'IN' if mode == self.IN else 'OUT'}")
+            self.pin = pin
+            self.mode = mode
+            self.pull_up_down = pull_up_down
+            logger.info(f"Mock GPIO: Setup pin {pin} as {'IN' if mode == self.IN else 'OUT'} with pull_up_down={pull_up_down}")
             
         def input(self, pin):
+            logger.info(f"Mock GPIO: Reading input from pin {pin}")
             return self.LOW
             
         def output(self, pin, value):
@@ -96,8 +102,11 @@ current_zone_pins = []
 lock = threading.RLock()  
 executed_schedules_today = set()
 schedule_runner_active = True
-alarm_triggered = False
-ding_triggered = False
+try:
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+except Exception as e:
+    logger.error(f"Error initializing GPIO: {e}")
 last_ding_time = 0
 DING_COOLDOWN = 5  # seconds between dings 
 
