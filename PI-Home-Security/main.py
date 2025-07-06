@@ -5,7 +5,7 @@ import json
 import os
 import atexit
 import logging
-# Removed unused import
+from collections import defaultdict
 import datetime
 import subprocess
 import sys
@@ -54,21 +54,15 @@ except ImportError:
         PUD_UP = 20
         
         def setmode(self, mode): 
-            self.mode = mode
-            logger.info(f"Mock GPIO: setmode called with mode {mode}")
+            logger.info("Mock GPIO: setmode called")
             
         def setwarnings(self, state): 
-            self.state = state
-            logger.info(f"Mock GPIO: setwarnings called with state {state}")
+            logger.info("Mock GPIO: setwarnings called")
             
         def setup(self, pin, mode, pull_up_down=None):
-            self.pin = pin
-            self.mode = mode
-            self.pull_up_down = pull_up_down
-            logger.info(f"Mock GPIO: Setup pin {pin} as {'IN' if mode == self.IN else 'OUT'} with pull_up_down={pull_up_down}")
+            logger.info(f"Mock GPIO: Setup pin {pin} as {'IN' if mode == self.IN else 'OUT'}")
             
         def input(self, pin):
-            logger.info(f"Mock GPIO: Reading input from pin {pin}")
             return self.LOW
             
         def output(self, pin, value):
@@ -102,11 +96,8 @@ current_zone_pins = []
 lock = threading.RLock()  
 executed_schedules_today = set()
 schedule_runner_active = True
-try:
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
-except Exception as e:
-    logger.error(f"Error initializing GPIO: {e}")
+alarm_triggered = False
+ding_triggered = False
 last_ding_time = 0
 DING_COOLDOWN = 5  # seconds between dings 
 
@@ -721,5 +712,5 @@ if __name__ == '__main__':
         if not os.path.exists(f'static/{flag_file}'):
             with open(f'static/{flag_file}', 'w') as f:
                 f.write('0')
- # ee
+
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
