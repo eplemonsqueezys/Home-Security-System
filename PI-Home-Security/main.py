@@ -10,8 +10,26 @@ import datetime
 import subprocess
 import sys
 
+# --- Update system packages ---
+try:
+    # Check for internet connectivity
+    internet_check = subprocess.run(["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if internet_check.returncode != 0:
+        print("No internet connection. Skipping system update.")
+    else:
+        updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+        print(f"Update result: {updateres.returncode}")
+        updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
+        print(f"Update result: {updateres.returncode}")
+        updateres = subprocess.run(["git", "pull"], check=True)
+        print(f"Update result: {updateres.returncode}")
+        subprocess.run(["pip3", "install", "-r", "requirements", "--break-system-packages"], check=True)
 
+except subprocess.CalledProcessError as e:
+    print(f"Update failed: {e}. Restarting system!")
+    os.execv(sys.executable, ['python3'] + sys.argv)
 
+# --- End of system update ---
 
 
 # Configure logging
@@ -127,27 +145,6 @@ def setup_relay_pins():
                 logger.info(f"GPIO: Setup output pin {pin} to LOW")
             except Exception as e:
                 logger.error(f"[GPIO OUTPUT ERROR] Relay pin {pin}: {e}")
-# --- Update function ---
-def update_system():
-    # --- Update system packages ---
-    try:
-        # Check for internet connectivity
-        internet_check = subprocess.run(["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        if internet_check.returncode != 0:
-            print("No internet connection. Skipping system update.")
-        else:
-            updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-            print(f"Update result: {updateres.returncode}")
-            updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
-            print(f"Update result: {updateres.returncode}")
-            updateres = subprocess.run(["git", "pull"], check=True)
-            print(f"Update result: {updateres.returncode}")
-            subprocess.run(["pip3", "install", "-r", "requirements", "--break-system-packages"], check=True)
-
-    except subprocess.CalledProcessError as e:
-        print(f"Update failed: {e}. Restarting system!")
-        os.execv(sys.executable, ['python3'] + sys.argv)
-
 
 # --- Configuration Management ---
 def save_config():
@@ -270,8 +267,6 @@ def poll_zones():
                     logger.error(f"Error reading GPIO pin {p} for zone {i}: {e}. Setting zone state to False.")
                     zone_state[i] = False
         time.sleep(0.1)
-
-
 
 def alarm_watcher():
     global alerted_zones, alarm_triggered, ding_triggered, last_ding_time
@@ -406,11 +401,6 @@ threading.Thread(target=schedule_runner, daemon=True).start()
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/api/update', methods=['POST'])
-def api_update_system():
-    update_system()
-    return jsonify({'status': 'System update initiated.'}), 200
 
 @app.route('/api/zone_status')
 def zone_status():
