@@ -1,8 +1,1 @@
 flask
-flask-socketio
-eventlet
-opencv-python
-numpy
-pillow
-requests
-gpiozero
