@@ -7,7 +7,7 @@
 <style>
 :root {
     --primary: #2c3e50;
-    --secondary: #34495e;
+    --secondary: #34495e; 
     --success: #27ae60;
     --danger: #e74c3c;
     --warning: #f39c12;
@@ -384,7 +384,6 @@ tr:nth-child(even) {
             </div>
         </div>
 
-    
         <div class="card">
             <h3 class="card-title">Mode Zone Configuration</h3>
             <p>Select which zones should be armed in each mode:</p>
@@ -393,7 +392,7 @@ tr:nth-child(even) {
                     <thead>
                         <tr>
                             <th>Zone</th>
-                            <th>Home Mode</th> 
+                            <th>Home Mode</th>
                             <th>Away Mode</th>
                         </tr>
                     </thead>
@@ -465,7 +464,6 @@ tr:nth-child(even) {
     <button id="testAlarmBtn" class="audio-btn">Test Alarm</button>
     <button id="testDingBtn" class="audio-btn">Test Doorbell</button>
     <button id="muteBtn" class="audio-btn">Mute Sounds</button>
-    <button id="update" class="audio-btn" onclick="updatesystem()">System Update</button>
 </div>
 
 <script>
@@ -507,25 +505,6 @@ tr:nth-child(even) {
             dingAudio.play().catch(e => console.error("Ding test error:", e));
         }
     });
-    // Update system button
-    function updatesystem() {
-        if (isProcessing) return;
-        showLoading();
-        fetch('/api/update')
-            .then(response => {
-                if (!response.ok) throw new Error('Update failed');
-                return response.json();
-            })
-            .then(data => {
-                alert('System updated successfully!');
-                hideLoading();
-            })
-            .catch(error => {
-                console.error('Update error:', error);
-                alert('Update failed: ' + error.message);
-                hideLoading();
-            });
-    }
     
     // Mute button
     muteBtn.addEventListener('click', () => {
