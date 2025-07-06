@@ -12,17 +12,21 @@ import sys
 
 # --- Update system packages ---
 try:
-    updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-    print(f"Update result: {updateres.returncode}")
-    updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
-    print(f"Update result: {updateres.returncode}")
-    updateres = subprocess.run(["git", "pull"], check=True)
-    print(f"Update result: {updateres.returncode}")
+    # Check for internet connectivity
+    internet_check = subprocess.run(["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if internet_check.returncode != 0:
+        print("No internet connection. Skipping system update.")
+    else:
+        updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+        print(f"Update result: {updateres.returncode}")
+        updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
+        print(f"Update result: {updateres.returncode}")
+        updateres = subprocess.run(["git", "pull"], check=True)
+        print(f"Update result: {updateres.returncode}")
 
 except subprocess.CalledProcessError as e:
-    print.error(f"Update requires restart....: {e}. Restarting system!.")
+    print(f"Update failed: {e}. Restarting system!")
     os.execv(sys.executable, ['python3'] + sys.argv)
-
 
 # --- End of system update ---
 
