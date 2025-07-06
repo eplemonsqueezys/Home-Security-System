@@ -10,9 +10,9 @@ import datetime
 import subprocess
 
 # --- Update system packages ---
-updateres = subprocess.run(["sudo", "apt-get", "update"], check=True)
+updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
 print(f"Update result: {updateres.returncode}")
-updateres = subprocess.run(["sudo", "apt-get", "upgrade",], check=True)
+updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
 print(f"Update result: {updateres.returncode}")
 updateres = subprocess.run(["git", "pull"], check=True)
 print(f"Update result: {updateres.returncode}")
