@@ -10,12 +10,16 @@ import datetime
 import subprocess
 
 # --- Update system packages ---
-updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-print(f"Update result: {updateres.returncode}")
-updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
-print(f"Update result: {updateres.returncode}")
-updateres = subprocess.run(["git", "pull"], check=True)
-print(f"Update result: {updateres.returncode}")
+try:
+    updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
+    print(f"Update result: {updateres.returncode}")
+    updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
+    print(f"Update result: {updateres.returncode}")
+    updateres = subprocess.run(["git", "pull"], check=True)
+    print(f"Update result: {updateres.returncode}")
+except subprocess.CalledProcessError as e:
+    print.error(f"System updated: {e}. Restarting system!.")
+    os.execv(__file__, ['python3'] + sys.argv)
 # --- End of system update ---
 
 
