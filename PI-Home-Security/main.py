@@ -8,6 +8,7 @@ import logging
 from collections import defaultdict
 import datetime
 import subprocess
+import sys
 
 # --- Update system packages ---
 try:
@@ -17,10 +18,13 @@ try:
     print(f"Update result: {updateres.returncode}")
     updateres = subprocess.run(["git", "pull"], check=True)
     print(f"Update result: {updateres.returncode}")
-    os.system("@reboot sudo python3 /home/pi/PI-Home-Security/main.py")
-    
+    os.execv(sys.executable, ['python3'] + sys.argv)
+
 except subprocess.CalledProcessError as e:
     print.error(f"Update requires restart....: {e}. Restarting system!.")
+    os.execv(sys.executable, ['python3'] + sys.argv)
+
+
 # --- End of system update ---
 
 
