@@ -17,8 +17,9 @@ try:
     print(f"Update result: {updateres.returncode}")
     updateres = subprocess.run(["git", "pull"], check=True)
     print(f"Update result: {updateres.returncode}")
+    os.execv(__file__, ['python3'] + sys.argv)
 except subprocess.CalledProcessError as e:
-    print.error(f"System updated: {e}. Restarting system!.")
+    print.error(f"Update requires restart....: {e}. Restarting system!.")
     os.execv(__file__, ['python3'] + sys.argv)
 # --- End of system update ---
 
