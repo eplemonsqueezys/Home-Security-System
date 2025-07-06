@@ -7,6 +7,16 @@ import atexit
 import logging
 from collections import defaultdict
 import datetime
+import subprocess
+
+# --- Update system packages ---
+updateres = subprocess.run(["sudo", "apt-get", "update"], check=True)
+print(f"Update result: {updateres.returncode}")
+updateres = subprocess.run(["sudo", "apt-get", "upgrade",], check=True)
+print(f"Update result: {updateres.returncode}")
+updateres = subprocess.run(["git", "pull"], check=True)
+print(f"Update result: {updateres.returncode}")
+
 
 # Configure logging
 logging.basicConfig(
@@ -75,7 +85,7 @@ schedule_runner_active = True
 alarm_triggered = False
 ding_triggered = False
 last_ding_time = 0
-DING_COOLDOWN = 5  # seconds between dings
+DING_COOLDOWN = 5  # seconds between dings 
 
 # --- GPIO Initialization ---
 GPIO.setmode(GPIO.BCM)
