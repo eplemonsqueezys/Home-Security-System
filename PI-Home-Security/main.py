@@ -16,6 +16,7 @@ updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
 print(f"Update result: {updateres.returncode}")
 updateres = subprocess.run(["git", "pull"], check=True)
 print(f"Update result: {updateres.returncode}")
+# --- End of system update ---
 
 
 # Configure logging
