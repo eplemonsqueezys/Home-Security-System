@@ -712,5 +712,5 @@ if __name__ == '__main__':
         if not os.path.exists(f'static/{flag_file}'):
             with open(f'static/{flag_file}', 'w') as f:
                 f.write('0')
-
+ # ee
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
