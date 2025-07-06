@@ -23,7 +23,7 @@ try:
         print(f"Update result: {updateres.returncode}")
         updateres = subprocess.run(["git", "pull"], check=True)
         print(f"Update result: {updateres.returncode}")
-        subprocess.run(["pip3", "install", "-r", "requirements.txt", "--break-system-packages"], check=True)
+        subprocess.run(["pip3", "install", "-r", "requirements", "--break-system-packages"], check=True)
 
 except subprocess.CalledProcessError as e:
     print(f"Update failed: {e}. Restarting system!")
