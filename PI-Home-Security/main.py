@@ -16,7 +16,7 @@ updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
 print(f"Update result: {updateres.returncode}")
 updateres = subprocess.run(["git", "pull"], check=True)
 print(f"Update result: {updateres.returncode}")
-updateres = subprocess.run(["pip3", "install", "-r", "requirements.txt"], check=True)
+updateres = subprocess.run(["pip3", "install", "-r", "requirements.txt","--break-system-packages"], check=True)
 print(f"Update result: {updateres.returncode}")
 # --- End of system update ---
 
