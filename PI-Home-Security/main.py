@@ -17,7 +17,8 @@ try:
     print(f"Update result: {updateres.returncode}")
     updateres = subprocess.run(["git", "pull"], check=True)
     print(f"Update result: {updateres.returncode}")
-    os.execv(['sudo'],__file__, ['python3'] + [__file__])
+    os.system("@reboot sudo python3 /home/pi/PI-Home-Security/main.py")
+    
 except subprocess.CalledProcessError as e:
     print.error(f"Update requires restart....: {e}. Restarting system!.")
 # --- End of system update ---
