@@ -607,6 +607,7 @@ tr:nth-child(even) {
             const alarmRes = await fetch('/static/alarm.flag');
             const alarmFlag = (await alarmRes.text()).trim() === '1';
     
+            
             // Check ding flag
             const dingRes = await fetch('/static/ding.flag');
             const dingFlag = (await dingRes.text()).trim() === '1';
@@ -614,17 +615,37 @@ tr:nth-child(even) {
             if (audioEnabled) {
                 // Handle alarm sound - only play if system is armed and alarm flag is set
                 if (alarmFlag && armed) {
-                    try {
-                        await alarmAudio.play();
-                    } catch(e) {
-                        console.error("Alarm play error:", e);
-                        // Try again after a short delay
-                        setTimeout(() => alarmAudio.play().catch(e => console.error("Retry alarm play error:", e)), 1000);
-                    }
-                } else {
-                    alarmAudio.pause();
-                    alarmAudio.currentTime = 0;
+            alarmPanel.style.display = 'block';
+            if (audioEnabled) {
+                try {
+                    await alarmAudio.play();
+                } catch(e) {
+                    console.error("Alarm play error:", e);
                 }
+            }
+        } else {
+            alarmPanel.style.display = 'none';
+            alarmAudio.pause();
+            alarmAudio.currentTime = 0;
+        }
+        stopAlarmBtn.addEventListener('click', async () => {
+    showLoading();
+    try {
+        // Disarm system
+        await fetch('/api/arm', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({armed: false})
+        });
+        
+        // Clear alarm latch
+        await fetch('/api/clear_alarm_latch', { method: 'POST' });
+        
+        await fetchAll();
+    } finally {
+        hideLoading();
+    }
+});
     
                 // Handle doorbell sound
                 if (dingFlag) {
@@ -632,6 +653,7 @@ tr:nth-child(even) {
                     // Clear ding flag after playing
                     setTimeout(() => fetch('/api/clear_ding'), 1000);
                 }
+
             } else {
                 // Ensure sounds are stopped if audio is muted
                 alarmAudio.pause();
