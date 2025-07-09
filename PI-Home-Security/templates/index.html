@@ -368,6 +368,20 @@ tr:nth-child(even) {
     background: #f8f9fa;
     transform: scale(1.03);
 }
+
+/* Advanced Options Card Layout */
+.advanced-options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 1.5em;
+}
+
+.advanced-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5em;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
 </style>
 </head>
 <body>
@@ -386,44 +400,19 @@ tr:nth-child(even) {
 <header><h1>Alarm Dashboard</h1></header>
 <nav>
     <button onclick="show('status')" class="active">Status</button>
-    <button onclick="show('options')">Options</button>
-    <button onclick="show('modes')">Home/Away Mode</button>
-    <button onclick="show('schedules')">Schedules</button>
-    <button onclick="show('pinlayout')">Pin Layout</button>
+    <button onclick="show('advanced')">Advanced Options</button>
 </nav>
 
 <div class="content">
+    <!-- STATUS TAB -->
     <div id="status">
         <div class="global-control">
             <button id="gbtn" class="arm-btn">Loading...</button>
         </div>
-        <div class="zones" id="zones"></div>
-
-        <div class="system-info">
-            <p><span class="status-indicator" id="armedIndicator"></span> System Status: <span id="systemStatusText">Loading...</span></p>
-            <p>Mode: <span id="modeDisplay">Loading...</span></p>
-            <p>Last Updated: <span id="lastUpdated">Never</span></p>
-        </div>
-    </div>
-
-    <div id="options" style="display:none;">
+        
+        <!-- Home/Away Mode Selector -->
         <div class="card">
-            <h3 class="card-title">Zone Labels</h3>
-            <textarea id="lab" rows="6" placeholder="Enter one label per line"></textarea>
-            <button onclick="saveLabels()">Save Labels</button>
-        </div>
-
-        <div class="card">
-            <h3 class="card-title">Ding on Unarmed Trip</h3>
-            <p>Select zones that should play a "ding" sound when tripped, even if the system is unarmed.</p>
-            <div id="ding-zones-list" class="zone-list"></div>
-            <button onclick="saveDingZones()">Save Ding Zones</button>
-        </div>
-    </div>
-
-    <div id="modes" style="display:none;">
-        <div class="card">
-            <h3 class="card-title">Current Mode</h3>
+            <h3 class="card-title">Security Mode</h3>
             <div class="mode-selector">
                 <div class="mode-option" onclick="setMode('home')" id="homeModeOption">
                     <h3>Home Mode</h3>
@@ -435,80 +424,106 @@ tr:nth-child(even) {
                 </div>
             </div>
         </div>
+        
+        <!-- Zone Status -->
+        <div class="zones" id="zones"></div>
 
-    
-        <div class="card">
-            <h3 class="card-title">Mode Zone Configuration</h3>
-            <p>Select which zones should be armed in each mode:</p>
-            <div class="mode-zones-container">
-                <table class="mode-zones-table">
+        <!-- System Info -->
+        <div class="system-info">
+            <p><span class="status-indicator" id="armedIndicator"></span> System Status: <span id="systemStatusText">Loading...</span></p>
+            <p>Current Mode: <span id="modeDisplay">Loading...</span></p>
+            <p>Last Updated: <span id="lastUpdated">Never</span></p>
+        </div>
+    </div>
+
+    <!-- ADVANCED OPTIONS TAB -->
+    <div id="advanced" style="display:none;">
+        <div class="advanced-options-grid">
+            <!-- Zone Labels Card -->
+            <div class="advanced-card">
+                <h3 class="card-title">Zone Labels</h3>
+                <textarea id="lab" rows="6" placeholder="Enter one label per line"></textarea>
+                <button onclick="saveLabels()">Save Labels</button>
+            </div>
+
+            <!-- Ding Zones Card -->
+            <div class="advanced-card">
+                <h3 class="card-title">Ding on Unarmed Trip</h3>
+                <p>Select zones that should play a "ding" sound when tripped, even if the system is unarmed.</p>
+                <div id="ding-zones-list" class="zone-list"></div>
+                <button onclick="saveDingZones()">Save Ding Zones</button>
+            </div>
+
+            <!-- Mode Zones Card -->
+            <div class="advanced-card">
+                <h3 class="card-title">Mode Zone Configuration</h3>
+                <p>Select which zones should be armed in each mode:</p>
+                <div class="mode-zones-container">
+                    <table class="mode-zones-table">
+                        <thead>
+                            <tr>
+                                <th>Zone</th>
+                                <th>Home Mode</th> 
+                                <th>Away Mode</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mode-zones-table"></tbody>
+                    </table>
+                </div>
+                <button onclick="saveHomeAwayZones()" style="margin-top: 1em;">Save Mode Configurations</button>
+            </div>
+
+            <!-- Schedules Card -->
+            <div class="advanced-card">
+                <h3 class="card-title">Schedules</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Time</th>
+                            <th>Repeat</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sched"></tbody>
+                </table>
+                
+                <h4 style="margin-top: 1.5em;">Add New Schedule</h4>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
+                    <div>
+                        <label for="sact">Action:</label>
+                        <select id="sact">
+                            <option value="arm">Arm System</option>
+                            <option value="disarm">Disarm System</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="stime">Time:</label>
+                        <input type="time" id="stime"/>
+                    </div>
+                    <div style="display: flex; align-items: flex-end;">
+                        <label><input type="checkbox" id="srep"/> Repeat Daily</label>
+                    </div>
+                </div>
+                <button onclick="addSched()" style="margin-top: 1em;">Add Schedule</button>
+            </div>
+
+            <!-- Pin Layout Card -->
+            <div class="advanced-card">
+                <h3 class="card-title">Zone to GPIO Pin Assignment</h3>
+                <p>Assign a Broadcom (BCM) GPIO pin number to each zone. Enter '0' to disable a zone.</p>
+                <table>
                     <thead>
                         <tr>
                             <th>Zone</th>
-                            <th>Home Mode</th> 
-                            <th>Away Mode</th>
+                            <th>Label</th>
+                            <th>GPIO Pin</th>
                         </tr>
                     </thead>
-                    <tbody id="mode-zones-table"></tbody>
+                    <tbody id="plist"></tbody>
                 </table>
+                <button onclick="savePinLayout()" style="margin-top: 1em;">Save Pin Layout</button>
             </div>
-            <button onclick="saveHomeAwayZones()" style="margin-top: 1em;">Save Mode Configurations</button>
-        </div>
-    </div>
-
-    <div id="schedules" style="display:none;">
-        <div class="card">
-            <h3 class="card-title">Current Schedules</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Action</th>
-                        <th>Time</th>
-                        <th>Repeat</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="sched"></tbody>
-            </table>
-        </div>
-
-        <div class="card">
-            <h3 class="card-title">Add New Schedule</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
-                <div>
-                    <label for="sact">Action:</label>
-                    <select id="sact">
-                        <option value="arm">Arm System</option>
-                        <option value="disarm">Disarm System</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="stime">Time:</label>
-                    <input type="time" id="stime"/>
-                </div>
-                <div style="display: flex; align-items: flex-end;">
-                    <label><input type="checkbox" id="srep"/> Repeat Daily</label>
-                </div>
-            </div>
-            <button onclick="addSched()" style="margin-top: 1em;">Add Schedule</button>
-        </div>
-    </div>
-
-    <div id="pinlayout" style="display:none;">
-        <div class="card">
-            <h3 class="card-title">Zone to GPIO Pin Assignment</h3>
-            <p>Assign a Broadcom (BCM) GPIO pin number to each zone. Enter '0' or leave blank if a zone is unused.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Zone</th>
-                        <th>Label</th>
-                        <th>GPIO Pin</th>
-                    </tr>
-                </thead>
-                <tbody id="plist"></tbody>
-            </table>
-            <button onclick="savePinLayout()" style="margin-top: 1em;">Save Pin Layout</button>
         </div>
     </div>
 </div>
@@ -580,26 +595,6 @@ tr:nth-child(even) {
             hideLoading();
         }
     });
-    
-    // Update system button
-    function updatesystem() {
-        if (isProcessing) return;
-        showLoading();
-        fetch('/api/update')
-            .then(response => {
-                if (!response.ok) throw new Error('Update failed');
-                return response.json();
-            })
-            .then(data => {
-                alert('System updated successfully!');
-                hideLoading();
-            })
-            .catch(error => {
-                console.error('Update error:', error);
-                alert('Update failed: ' + error.message);
-                hideLoading();
-            });
-    }
     
     // Mute button
     muteBtn.addEventListener('click', () => {
@@ -715,7 +710,7 @@ tr:nth-child(even) {
             activeButton.classList.add('active');
         }
     
-        ['status','options','modes','schedules','pinlayout']
+        ['status','advanced']
             .forEach(tab => document.getElementById(tab).style.display = (tab === id ? 'block' : 'none'));
     }
     
@@ -732,7 +727,11 @@ tr:nth-child(even) {
         modeDisplay.style.fontWeight = 'bold';
         systemStatusText.textContent = armed ? 'System Armed' : 'System Disarmed';
     
-        // Render zones
+        // Update mode options
+        document.getElementById('homeModeOption').classList.toggle('active', mode === 'home');
+        document.getElementById('awayModeOption').classList.toggle('active', mode === 'away');
+    
+        // Render zones - only show zones with non-zero pins
         zonesEl.innerHTML = '';
         zones.forEach((tripped, i) => {
             const zoneEl = document.createElement('div');
@@ -775,10 +774,6 @@ tr:nth-child(even) {
     }
     
     function renderModes(){
-        // Update mode options
-        document.getElementById('homeModeOption').classList.toggle('active', mode === 'home');
-        document.getElementById('awayModeOption').classList.toggle('active', mode === 'away');
-    
         // Render mode zones table
         const tableBody = document.getElementById('mode-zones-table');
         tableBody.innerHTML = '';

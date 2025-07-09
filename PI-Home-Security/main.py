@@ -412,12 +412,26 @@ def index():
 @app.route('/api/zone_status')
 def zone_status():
     with lock:
+        # Only include zones with non-zero pins
+        active_zones = []
+        active_zone_state = []
+        active_zone_armed = []
+        active_zone_labels = []
+        
+        for i in range(len(zone_state)):
+            pin = pin_layout.get(str(i))
+            if pin is not None and int(pin) != 0:
+                active_zones.append(i)
+                active_zone_state.append(zone_state[i])
+                active_zone_armed.append(zone_armed[i])
+                active_zone_labels.append(zone_labels[i])
+        
         serializable_pin_layout = {int(k): v for k, v in pin_layout.items()}
         return jsonify({
             'armed': armed,
-            'zones': zone_state,
-            'zone_armed': zone_armed,
-            'zone_labels': zone_labels,
+            'zones': active_zone_state,
+            'zone_armed': active_zone_armed,
+            'zone_labels': active_zone_labels,
             'pin_layout': serializable_pin_layout,
             'schedules': schedules,
             'mode': mode,
