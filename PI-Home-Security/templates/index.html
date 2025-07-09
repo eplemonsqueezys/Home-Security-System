@@ -331,6 +331,7 @@ tr:nth-child(even) {
     <h2>Processing Changes...</h2>
 </div>
 
+
 <header><h1>Alarm Dashboard</h1></header>
 <nav>
     <button onclick="show('status')" class="active">Status</button>
@@ -339,6 +340,15 @@ tr:nth-child(even) {
     <button onclick="show('schedules')">Schedules</button>
     <button onclick="show('pinlayout')">Pin Layout</button>
 </nav>
+
+<!-- Add to HTML body -->
+<div id="alarmPanel" style="display:none; position:fixed; top:20px; right:20px; background:#e74c3c; color:white; padding:20px; border-radius:8px; z-index:2000; box-shadow:0 5px 15px rgba(0,0,0,0.5);">
+    <h3 style="margin-top:0;">ALARM TRIGGERED!</h3>
+    <p>System is armed and zones are tripped</p>
+    <button id="stopAlarmBtn" style="background:white; color:#e74c3c; border:none; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:10px;">
+        DISARM AND SILENCE ALARM
+    </button>
+</div>
 
 <div class="content">
     <div id="status">
@@ -477,6 +487,8 @@ tr:nth-child(even) {
     let isProcessing = false;
     let isPinInputFocused = false;
     let isModeInputFocused = false;
+    let alarmPanel = document.getElementById('alarmPanel');
+    let stopAlarmBtn = document.getElementById('stopAlarmBtn');
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
