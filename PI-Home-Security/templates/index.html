@@ -1,852 +1,1034 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alarm System Dashboard</title>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #34495e;
-            --success: #27ae60;
-            --danger: #e74c3c;
-            --warning: #f39c12;
-            --info: #3498db;
-            --light: #ecf0f1;
-            --dark: #2c3e50;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
-            color: #ecf0f1;
-            min-height: 100vh;
-            padding-bottom: 100px;
-        }
-
-        header {
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-            position: relative;
-            z-index: 10;
-        }
-
-        header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-            text-shadow: 0 0 10px rgba(52, 152, 219, 0.7);
-        }
-
-        .subtitle {
-            font-size: 1.1rem;
-            opacity: 0.8;
-        }
-
-        nav {
-            background: rgba(44, 62, 80, 0.9);
-            display: flex;
-            justify-content: center;
-            padding: 0.8rem;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-
-        nav button {
-            background: none;
-            border: none;
-            color: #ecf0f1;
-            padding: 0.8rem 1.5rem;
-            margin: 0 0.5rem;
-            cursor: pointer;
-            border-radius: 30px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        nav button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(52, 152, 219, 0.2);
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-            z-index: -1;
-        }
-
-        nav button:hover::before, nav button.active::before {
-            transform: translateY(0);
-        }
-
-        nav button:hover, nav button.active {
-            color: white;
-            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
-        }
-
-        .content {
-            max-width: 1200px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-        }
-
-        .card {
-            background: rgba(25, 39, 52, 0.8);
-            border-radius: 15px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(52, 152, 219, 0.2);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--info);
-        }
-
-        .card-title {
-            font-size: 1.8rem;
-            margin-bottom: 1.5rem;
-            color: var(--info);
-            display: flex;
-            align-items: center;
-        }
-
-        .card-title i {
-            margin-right: 10px;
-            font-size: 1.5rem;
-        }
-
-        .global-control {
-            display: flex;
-            justify-content: center;
-            margin: 2rem 0;
-        }
-
-        .arm-btn {
-            padding: 1.2rem 3rem;
-            font-size: 1.5rem;
-            font-weight: bold;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .arm-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s ease;
-        }
-
-        .arm-btn:hover::before {
-            transform: translateX(100%);
-        }
-
-        .arm-btn.save {
-            background: linear-gradient(to right, #27ae60, #2ecc71);
-            color: white;
-        }
-
-        .arm-btn.disarm {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-            color: white;
-        }
-
-        .arm-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-        }
-
-        .zones-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .zone-card {
-            background: rgba(30, 47, 64, 0.9);
-            border-radius: 10px;
-            padding: 1.5rem;
-            text-align: center;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: 2px solid transparent;
-        }
-
-        .zone-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-        }
-
-        .zone-card.ok {
-            border-color: var(--success);
-        }
-
-        .zone-card.tripped {
-            border-color: var(--danger);
-            animation: pulse 1.5s infinite;
-        }
-
-        .zone-card.disarmed {
-            border-color: var(--warning);
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0); }
-        }
-
-        .zone-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .zone-name {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #ecf0f1;
-        }
-
-        .zone-status {
-            font-size: 1.1rem;
-            font-weight: bold;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            background: rgba(0, 0, 0, 0.3);
-        }
-
-        .zone-status.ok {
-            color: var(--success);
-        }
-
-        .zone-status.tripped {
-            color: var(--danger);
-        }
-
-        .zone-control {
-            margin-top: 1.5rem;
-        }
-
-        .zone-btn {
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            width: 100%;
-            transition: all 0.3s ease;
-        }
-
-        .zone-btn.save {
-            background: linear-gradient(to right, #27ae60, #2ecc71);
-            color: white;
-        }
-
-        .zone-btn.disarm {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-            color: white;
-        }
-
-        .system-info {
-            background: rgba(30, 47, 64, 0.9);
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .info-item {
-            margin: 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 15px;
-            height: 15px;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-
-        .status-armed {
-            background: var(--danger);
-            box-shadow: 0 0 10px var(--danger);
-        }
-
-        .status-disarmed {
-            background: var(--success);
-            box-shadow: 0 0 10px var(--success);
-        }
-
-        .audio-controls {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            display: flex;
-            gap: 15px;
-            z-index: 100;
-        }
-
-        .audio-btn {
-            padding: 12px 20px;
-            background: linear-gradient(to right, #3498db, #2980b9);
-            color: white;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .audio-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
-        }
-
-        .audio-btn.mute {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-        }
-
-        .alarm-active {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(231, 76, 60, 0.1);
-            z-index: 5;
-            display: none;
-            animation: alarmPulse 1s infinite;
-        }
-
-        @keyframes alarmPulse {
-            0% { background: rgba(231, 76, 60, 0.1); }
-            50% { background: rgba(231, 76, 60, 0.3); }
-            100% { background: rgba(231, 76, 60, 0.1); }
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            display: none;
-        }
-
-        .modal-content {
-            background: rgba(30, 47, 64, 0.95);
-            border-radius: 15px;
-            padding: 2.5rem;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 0 30px rgba(52, 152, 219, 0.5);
-            border: 2px solid var(--info);
-        }
-
-        .modal h2 {
-            color: var(--info);
-            margin-bottom: 1.5rem;
-            font-size: 2rem;
-        }
-
-        .modal p {
-            margin-bottom: 2rem;
-            font-size: 1.2rem;
-            line-height: 1.6;
-        }
-
-        .modal-buttons {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-
-        .modal-btn {
-            padding: 0.8rem 2rem;
-            border: none;
-            border-radius: 30px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .modal-btn.confirm {
-            background: linear-gradient(to right, #e74c3c, #c0392b);
-            color: white;
-        }
-
-        .modal-btn.cancel {
-            background: linear-gradient(to right, #7f8c8d, #95a5a6);
-            color: white;
-        }
-
-        .modal-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .instructions {
-            margin-top: 3rem;
-            padding: 2rem;
-            background: rgba(25, 39, 52, 0.8);
-            border-radius: 15px;
-            border-left: 5px solid var(--info);
-        }
-
-        .instructions h2 {
-            color: var(--info);
-            margin-bottom: 1rem;
-        }
-
-        .instructions ul {
-            padding-left: 1.5rem;
-            line-height: 1.8;
-        }
-
-        .instructions li {
-            margin-bottom: 0.8rem;
-        }
-
-        footer {
-            text-align: center;
-            padding: 2rem;
-            margin-top: 3rem;
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            .zones-grid {
-                grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
-            }
-            
-            .system-info {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            
-            nav button {
-                padding: 0.6rem 1rem;
-                font-size: 0.9rem;
-            }
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alarm Dashboard</title>
+<style>
+:root {
+    --primary: #2c3e50;
+    --secondary: #34495e;
+    --success: #27ae60;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --info: #3498db;
+    --light: #ecf0f1;
+    --dark: #2c3e50;
+}
+
+body { 
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+    background: #f4f4f4; 
+    margin: 0; 
+    padding: 0;
+    color: #333;
+}
+
+header, nav { 
+    background: var(--primary); 
+    color: #fff; 
+    padding: 1em; 
+    text-align: center; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+}
+
+nav button { 
+    background: none; 
+    border: none; 
+    color: #fff; 
+    padding: 0.8em 1.2em; 
+    margin: 0 0.2em; 
+    cursor: pointer; 
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+nav button:hover, nav button.active { 
+    background: var(--secondary); 
+}
+
+.content { 
+    padding: 1.5em; 
+    max-width: 1200px; 
+    margin: auto; 
+}
+
+.card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1.5em;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 1.5em;
+}
+
+.card-title {
+    margin-top: 0;
+    color: var(--primary);
+    border-bottom: 2px solid var(--light);
+    padding-bottom: 0.5em;
+    margin-bottom: 1em;
+}
+
+.zones { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+    gap: 1.5em; 
+}
+
+.zone { 
+    background: #fff; 
+    padding: 1.2em; 
+    border-radius: 8px; 
+    text-align: center; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.zone:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+}
+
+.ok:before { background: var(--success); }
+.tripped:before { background: var(--danger); }
+.disarmed:before { background: var(--warning); }
+
+.zone h3 {
+    margin: 0 0 0.5em;
+    font-size: 1.1rem;
+}
+
+.zone-status {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 0.5em 0;
+}
+
+.ok .zone-status { color: var(--success); }
+.tripped .zone-status { color: var(--danger); }
+
+.arm-btn { 
+    padding: 0.6em 1em; 
+    border: none; 
+    color: #fff; 
+    cursor: pointer; 
+    border-radius: 4px; 
+    font-weight: 500;
+    width: 100%;
+    transition: opacity 0.3s;
+}
+
+.arm-btn.save { background: var(--success); }
+.arm-btn.disarm { background: var(--danger); }
+
+.arm-btn:hover {
+    opacity: 0.9;
+}
+
+.global-control {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2em;
+}
+
+#gbtn {
+    padding: 0.8em 2em;
+    font-size: 1.1rem;
+    border-radius: 30px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+}
+
+textarea, select, input {
+    width: 100%;
+    padding: 0.8em;
+    margin-bottom: 1em;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-family: inherit;
+}
+
+button {
+    background: var(--info);
+    color: white;
+    border: none;
+    padding: 0.8em 1.5em;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #2980b9;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 0.8em;
+    text-align: left;
+}
+
+th {
+    background: var(--light);
+}
+
+tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+.mode-selector {
+    display: flex;
+    gap: 1em;
+    margin-bottom: 1.5em;
+}
+
+.mode-option {
+    flex: 1;
+    text-align: center;
+    padding: 1em;
+    border-radius: 8px;
+    background: var(--light);
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.mode-option.active {
+    border-color: var(--info);
+    background: #e1f0fa;
+}
+
+.mode-option h3 {
+    margin-top: 0;
+}
+
+.zone-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1em;
+    margin: 1em 0;
+}
+
+.zone-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.system-info {
+    background: var(--light);
+    padding: 1em;
+    border-radius: 8px;
+    margin-top: 2em;
+    font-size: 0.9rem;
+}
+
+.system-info p {
+    margin: 0.3em 0;
+}
+
+.status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 0.5em;
+}
+
+.status-armed { background: var(--danger); }
+.status-disarmed { background: var(--success); }
+
+.audio-controls {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+    display: flex;
+    gap: 10px;
+}
+
+.audio-btn {
+    padding: 8px 12px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.audio-btn.mute {
+    background: #dc3545;
+}
+
+#loadingIndicator {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    color: white;
+    text-align: center;
+    padding-top: 20%;
+}
+
+/* Table styles for mode zones */
+.mode-zones-table {
+    width: 100%;
+    margin: 1em 0;
+    border-collapse: collapse;
+}
+
+.mode-zones-table th {
+    background-color: var(--light);
+    padding: 10px;
+    text-align: left;
+}
+
+.mode-zones-table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.mode-zones-table tr:last-child td {
+    border-bottom: none;
+}
+
+.mode-zones-table input[type="checkbox"] {
+    margin-right: 10px;
+}
+
+.mode-zones-table label {
+    display: flex;
+    align-items: center;
+}
+</style>
 </head>
 <body>
-    <!-- Alarm overlay effect -->
-    <div class="alarm-active" id="alarmOverlay"></div>
-    
-    <!-- Modal for disarm confirmation -->
-    <div class="modal" id="disarmModal">
-        <div class="modal-content">
-            <h2>ALARM TRIGGERED!</h2>
-            <p>The alarm has been triggered by a tripped zone. The alarm sound will continue until you disarm the system or the specific zone.</p>
-            <div class="modal-buttons">
-                <button class="modal-btn confirm" onclick="disarmSystem()">Disarm System</button>
-                <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-    
-    <header>
-        <h1>SECURITY ALARM SYSTEM</h1>
-        <div class="subtitle">Intruder Detection & Perimeter Monitoring</div>
-    </header>
-    
-    <nav>
-        <button onclick="showSection('status')" class="active">System Status</button>
-        <button onclick="showSection('zones')">Zones</button>
-        <button onclick="showSection('modes')">Modes</button>
-        <button onclick="showSection('settings')">Settings</button>
-    </nav>
-    
-    <div class="content">
-        <div class="card" id="status">
-            <h2 class="card-title">System Overview</h2>
-            
-            <div class="global-control">
-                <button id="armButton" class="arm-btn">ARM SYSTEM</button>
-            </div>
-            
-            <div class="system-info">
-                <div class="info-item">
-                    <span class="status-indicator" id="armedIndicator"></span>
-                    <strong>System Status:</strong> <span id="systemStatusText">DISARMED</span>
-                </div>
-                
-                <div class="info-item">
-                    <strong>Current Mode:</strong> <span id="modeDisplay">Home</span>
-                </div>
-                
-                <div class="info-item">
-                    <strong>Last Update:</strong> <span id="lastUpdated">Just now</span>
-                </div>
-                
-                <div class="info-item">
-                    <strong>Alarm:</strong> <span id="alarmStatus">Inactive</span>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card" id="zones" style="display: none;">
-            <h2 class="card-title">Security Zones</h2>
-            
-            <div class="zones-grid">
-                <!-- Zone 1 -->
-                <div class="zone-card ok">
-                    <div class="zone-header">
-                        <div class="zone-name">Front Door</div>
-                        <div class="zone-status ok">SECURE</div>
-                    </div>
-                    <p>Main entry point</p>
-                    <div class="zone-control">
-                        <button class="zone-btn disarm">Disarm Zone</button>
-                    </div>
-                </div>
-                
-                <!-- Zone 2 -->
-                <div class="zone-card disarmed">
-                    <div class="zone-header">
-                        <div class="zone-name">Back Door</div>
-                        <div class="zone-status">DISARMED</div>
-                    </div>
-                    <p>Secondary entry point</p>
-                    <div class="zone-control">
-                        <button class="zone-btn save">Arm Zone</button>
-                    </div>
-                </div>
-                
-                <!-- Zone 3 -->
-                <div class="zone-card tripped">
-                    <div class="zone-header">
-                        <div class="zone-name">Living Room</div>
-                        <div class="zone-status tripped">TRIPPED</div>
-                    </div>
-                    <p>Motion detected</p>
-                    <div class="zone-control">
-                        <button class="zone-btn disarm">Disarm Zone</button>
-                    </div>
-                </div>
-                
-                <!-- Zone 4 -->
-                <div class="zone-card ok">
-                    <div class="zone-header">
-                        <div class="zone-name">Garage</div>
-                        <div class="zone-status ok">SECURE</div>
-                    </div>
-                    <p>Vehicle storage</p>
-                    <div class="zone-control">
-                        <button class="zone-btn disarm">Disarm Zone</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card" id="modes" style="display: none;">
-            <h2 class="card-title">System Modes</h2>
-            
-            <div class="mode-options">
-                <div class="mode-card active">
-                    <h3>Home Mode</h3>
-                    <p>Perimeter sensors active. Motion sensors disabled for interior movement.</p>
-                    <button class="mode-btn">Activate</button>
-                </div>
-                
-                <div class="mode-card">
-                    <h3>Away Mode</h3>
-                    <p>All sensors active. Full security enabled.</p>
-                    <button class="mode-btn">Activate</button>
-                </div>
-                
-                <div class="mode-card">
-                    <h3>Night Mode</h3>
-                    <p>Perimeter sensors active. Bedroom motion sensors disabled.</p>
-                    <button class="mode-btn">Activate</button>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card" id="settings" style="display: none;">
-            <h2 class="card-title">System Settings</h2>
-            
-            <div class="settings-grid">
-                <div class="setting-item">
-                    <h3>Alarm Duration</h3>
-                    <p>Set how long the alarm sounds before auto-silencing</p>
-                    <select>
-                        <option>Continuous until disarmed</option>
-                        <option>5 minutes</option>
-                        <option>10 minutes</option>
-                        <option>20 minutes</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <h3>Entry Delay</h3>
-                    <p>Time to disarm after entering through secured entry</p>
-                    <select>
-                        <option>30 seconds</option>
-                        <option>45 seconds</option>
-                        <option>60 seconds</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <h3>Alarm Volume</h3>
-                    <p>Set the alarm sound volume level</p>
-                    <input type="range" min="1" max="10" value="8">
-                </div>
-                
-                <div class="setting-item">
-                    <h3>System PIN</h3>
-                    <p>Change system access PIN</p>
-                    <input type="password" placeholder="Enter new PIN">
-                </div>
-            </div>
-            
-            <div class="save-settings">
-                <button>Save Settings</button>
-            </div>
-        </div>
-        
-        <div class="instructions">
-            <h2>Alarm System Behavior</h2>
-            <ul>
-                <li>When an <strong>armed zone is tripped</strong>, the alarm sound will play continuously</li>
-                <li>The alarm will <strong>only stop</strong> when you either disarm the entire system or specifically disarm the triggered zone</li>
-                <li>In "Away Mode", all zones are monitored and will trigger the alarm if tripped</li>
-                <li>In "Home Mode", only perimeter zones are monitored</li>
-                <li>Use the mute button to temporarily silence the alarm without disarming</li>
-            </ul>
-        </div>
-    </div>
-    
-    <div class="audio-controls">
-        <button class="audio-btn" id="testAlarmBtn">
-            <i>🔊</i> Test Alarm
-        </button>
-        <button class="audio-btn" id="muteBtn">
-            <i>🔇</i> Mute
-        </button>
-    </div>
-    
-    <footer>
-        <p>Security Alarm System v2.0 | © 2023 SecureHome Technologies</p>
-    </footer>
 
-    <script>
-        // System state variables
-        let systemArmed = false;
-        let currentMode = "home";
-        let alarmActive = false;
-        
-        // DOM Elements
-        const armButton = document.getElementById('armButton');
-        const armedIndicator = document.getElementById('armedIndicator');
-        const systemStatusText = document.getElementById('systemStatusText');
-        const modeDisplay = document.getElementById('modeDisplay');
-        const lastUpdatedEl = document.getElementById('lastUpdated');
-        const alarmStatusEl = document.getElementById('alarmStatus');
-        const alarmOverlay = document.getElementById('alarmOverlay');
-        const disarmModal = document.getElementById('disarmModal');
-        const muteBtn = document.getElementById('muteBtn');
-        const testAlarmBtn = document.getElementById('testAlarmBtn');
-        
-        // Audio elements
-        const alarmAudio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
-        alarmAudio.loop = true;
-        
-        // Initialize the system
-        function initSystem() {
-            updateStatusDisplay();
-            updateLastUpdated();
-            
-            // Event listeners
-            armButton.addEventListener('click', toggleSystemArm);
-            muteBtn.addEventListener('click', toggleMute);
-            testAlarmBtn.addEventListener('click', testAlarm);
-            
-            // Simulate a tripped zone after 5 seconds for demo
-            setTimeout(() => {
-                // Only trigger if system is armed
-                if (systemArmed) {
-                    triggerAlarm();
-                }
-            }, 5000);
+<div id="loadingIndicator">
+    <h2>Processing Changes...</h2>
+</div>
+
+<header><h1>Alarm Dashboard</h1></header>
+<nav>
+    <button onclick="show('status')" class="active">Status</button>
+    <button onclick="show('options')">Options</button>
+    <button onclick="show('modes')">Home/Away Mode</button>
+    <button onclick="show('schedules')">Schedules</button>
+    <button onclick="show('pinlayout')">Pin Layout</button>
+</nav>
+
+<div class="content">
+    <div id="status">
+        <div class="global-control">
+            <button id="gbtn" class="arm-btn">Loading...</button>
+        </div>
+        <div class="zones" id="zones"></div>
+
+        <div class="system-info">
+            <p><span class="status-indicator" id="armedIndicator"></span> System Status: <span id="systemStatusText">Loading...</span></p>
+            <p>Mode: <span id="modeDisplay">Loading...</span></p>
+            <p>Last Updated: <span id="lastUpdated">Never</span></p>
+        </div>
+    </div>
+
+    <div id="options" style="display:none;">
+        <div class="card">
+            <h3 class="card-title">Zone Labels</h3>
+            <textarea id="lab" rows="6" placeholder="Enter one label per line"></textarea>
+            <button onclick="saveLabels()">Save Labels</button>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">Ding on Unarmed Trip</h3>
+            <p>Select zones that should play a "ding" sound when tripped, even if the system is unarmed.</p>
+            <div id="ding-zones-list" class="zone-list"></div>
+            <button onclick="saveDingZones()">Save Ding Zones</button>
+        </div>
+    </div>
+
+    <div id="modes" style="display:none;">
+        <div class="card">
+            <h3 class="card-title">Current Mode</h3>
+            <div class="mode-selector">
+                <div class="mode-option" onclick="setMode('home')" id="homeModeOption">
+                    <h3>Home Mode</h3>
+                    <p>Only perimeter zones armed</p>
+                </div>
+                <div class="mode-option" onclick="setMode('away')" id="awayModeOption">
+                    <h3>Away Mode</h3>
+                    <p>All zones armed</p>
+                </div>
+            </div>
+        </div>
+
+    
+        <div class="card">
+            <h3 class="card-title">Mode Zone Configuration</h3>
+            <p>Select which zones should be armed in each mode:</p>
+            <div class="mode-zones-container">
+                <table class="mode-zones-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Home Mode</th> 
+                            <th>Away Mode</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mode-zones-table"></tbody>
+                </table>
+            </div>
+            <button onclick="saveHomeAwayZones()" style="margin-top: 1em;">Save Mode Configurations</button>
+        </div>
+    </div>
+
+    <div id="schedules" style="display:none;">
+        <div class="card">
+            <h3 class="card-title">Current Schedules</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Action</th>
+                        <th>Time</th>
+                        <th>Repeat</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="sched"></tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3 class="card-title">Add New Schedule</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1em;">
+                <div>
+                    <label for="sact">Action:</label>
+                    <select id="sact">
+                        <option value="arm">Arm System</option>
+                        <option value="disarm">Disarm System</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="stime">Time:</label>
+                    <input type="time" id="stime"/>
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <label><input type="checkbox" id="srep"/> Repeat Daily</label>
+                </div>
+            </div>
+            <button onclick="addSched()" style="margin-top: 1em;">Add Schedule</button>
+        </div>
+    </div>
+
+    <div id="pinlayout" style="display:none;">
+        <div class="card">
+            <h3 class="card-title">Zone to GPIO Pin Assignment</h3>
+            <p>Assign a Broadcom (BCM) GPIO pin number to each zone. Enter '0' or leave blank if a zone is unused.</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Zone</th>
+                        <th>Label</th>
+                        <th>GPIO Pin</th>
+                    </tr>
+                </thead>
+                <tbody id="plist"></tbody>
+            </table>
+            <button onclick="savePinLayout()" style="margin-top: 1em;">Save Pin Layout</button>
+        </div>
+    </div>
+</div>
+
+<div class="audio-controls">
+    <button id="testAlarmBtn" class="audio-btn">Test Alarm</button>
+    <button id="testDingBtn" class="audio-btn">Test Doorbell</button>
+    <button id="muteBtn" class="audio-btn">Mute Sounds</button>
+</div>
+
+<script>
+    let armed, zones, zoneArmed, zoneLabels, pinLayout;
+    let schedules = [];  // Initialize as empty array
+    let mode, homeModeZones = [], awayModeZones = [], zoneDingUnarmed = [];
+    let audioEnabled = true;
+    let lastUpdateTime = new Date();
+    let pollInterval;
+    let isProcessing = false;
+    let isPinInputFocused = false;
+    let isModeInputFocused = false;
+    
+    // Create audio elements
+    const alarmAudio = new Audio('/static/alarm.mp3');
+    const dingAudio = new Audio('/static/ding.mp3');
+    alarmAudio.loop = true;
+    
+    // DOM elements
+    const gbtn = document.getElementById('gbtn');
+    const zonesEl = document.getElementById('zones');
+    const armedIndicator = document.getElementById('armedIndicator');
+    const systemStatusText = document.getElementById('systemStatusText');
+    const modeDisplay = document.getElementById('modeDisplay');
+    const lastUpdatedEl = document.getElementById('lastUpdated');
+    const muteBtn = document.getElementById('muteBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    
+    // Test buttons
+    document.getElementById('testAlarmBtn').addEventListener('click', () => {
+        if (audioEnabled) {
+            alarmAudio.play().catch(e => console.error("Alarm test error:", e));
+            setTimeout(() => alarmAudio.pause(), 2000);
         }
-        
-        // Toggle system armed status
-        function toggleSystemArm() {
-            systemArmed = !systemArmed;
-            
-            if (systemArmed) {
-                // Disable alarm when arming system
-                alarmActive = false;
-                stopAlarm();
-            }
-            
-            updateStatusDisplay();
+    });
+    
+    document.getElementById('testDingBtn').addEventListener('click', () => {
+        if (audioEnabled) {
+            dingAudio.play().catch(e => console.error("Ding test error:", e));
         }
-        
-        // Trigger the alarm
-        function triggerAlarm() {
-            if (!systemArmed) return;
-            
-            alarmActive = true;
-            updateStatusDisplay();
-            playAlarm();
-            showModal();
-        }
-        
-        // Disarm the entire system
-        function disarmSystem() {
-            systemArmed = false;
-            alarmActive = false;
-            updateStatusDisplay();
-            stopAlarm();
-            closeModal();
-        }
-        
-        // Play alarm sound
-        function playAlarm() {
-            alarmOverlay.style.display = 'block';
-            alarmAudio.play().catch(e => console.log("Alarm play error:", e));
-        }
-        
-        // Stop alarm sound
-        function stopAlarm() {
-            alarmOverlay.style.display = 'none';
+    });
+    // Update system button
+    function updatesystem() {
+        if (isProcessing) return;
+        showLoading();
+        fetch('/api/update')
+            .then(response => {
+                if (!response.ok) throw new Error('Update failed');
+                return response.json();
+            })
+            .then(data => {
+                alert('System updated successfully!');
+                hideLoading();
+            })
+            .catch(error => {
+                console.error('Update error:', error);
+                alert('Update failed: ' + error.message);
+                hideLoading();
+            });
+    }
+    
+    // Mute button
+    muteBtn.addEventListener('click', () => {
+        audioEnabled = !audioEnabled;
+        muteBtn.textContent = audioEnabled ? 'Mute Sounds' : 'Unmute Sounds';
+        muteBtn.classList.toggle('mute', !audioEnabled);
+    
+        if (!audioEnabled) {
             alarmAudio.pause();
-            alarmAudio.currentTime = 0;
+            dingAudio.pause();
+        }
+    });
+    
+    function showLoading() {
+        loadingIndicator.style.display = 'block';
+        isProcessing = true;
+    }
+    
+    function hideLoading() {
+        loadingIndicator.style.display = 'none';
+        isProcessing = false;
+    }
+    
+    async function fetchAll() {
+        if (isProcessing) return;
+        
+        try {
+            const response = await fetch('/api/zone_status');
+            if (!response.ok) throw new Error('Network response was not ok');
+    
+            const js = await response.json();
+            armed = js.armed;
+            zones = js.zones;
+            zoneArmed = js.zone_armed;
+            zoneLabels = js.zone_labels;
+            pinLayout = js.pin_layout;
+            schedules = js.schedules || []; // Ensure it's always an array
+            mode = js.mode;
+            homeModeZones = js.home_mode_zones;
+            awayModeZones = js.away_mode_zones;
+            zoneDingUnarmed = js.zone_ding_unarmed;
+    
+            // Update last updated time
+            lastUpdateTime = new Date();
+            lastUpdatedEl.textContent = lastUpdateTime.toLocaleTimeString();
+    
+            render();
+            renderOptions();
+            renderModes();
+            renderSchedules();
+            
+            // Only refresh pin inputs if not currently focused
+            if (!isPinInputFocused) {
+                fillPins();
+            }
+    
+            // Check for alarm/ding flags
+            await checkFlags();
+    
+        } catch (e) {
+            console.error("Error fetching data:", e);
+        }
+    }
+    
+    async function checkFlags() {
+        try {
+            // Check alarm flag
+            const alarmRes = await fetch('/static/alarm.flag');
+            const alarmFlag = (await alarmRes.text()).trim() === '1';
+    
+            // Check ding flag
+            const dingRes = await fetch('/static/ding.flag');
+            const dingFlag = (await dingRes.text()).trim() === '1';
+    
+            if (audioEnabled) {
+                // Handle alarm sound - only play if system is armed and alarm flag is set
+                if (alarmFlag && armed) {
+                    try {
+                        await alarmAudio.play();
+                    } catch(e) {
+                        console.error("Alarm play error:", e);
+                        // Try again after a short delay
+                        setTimeout(() => alarmAudio.play().catch(e => console.error("Retry alarm play error:", e)), 1000);
+                    }
+                } else {
+                    alarmAudio.pause();
+                    alarmAudio.currentTime = 0;
+                }
+    
+                // Handle doorbell sound
+                if (dingFlag) {
+                    dingAudio.play().catch(e => console.error("Ding play error:", e));
+                    // Clear ding flag after playing
+                    setTimeout(() => fetch('/api/clear_ding'), 1000);
+                }
+            } else {
+                // Ensure sounds are stopped if audio is muted
+                alarmAudio.pause();
+                dingAudio.pause();
+            }
+    
+        } catch (e) {
+            console.error("Error checking flags:", e);
+        }
+    }
+    
+    function show(id){
+        document.querySelectorAll('nav button').forEach(button => {
+            button.classList.remove('active');
+        });
+        const activeButton = document.querySelector(`nav button[onclick="show('${id}')"]`);
+        if (activeButton) {
+            activeButton.classList.add('active');
+        }
+    
+        ['status','options','modes','schedules','pinlayout']
+            .forEach(tab => document.getElementById(tab).style.display = (tab === id ? 'block' : 'none'));
+    }
+    
+    function render(){
+        // Update global armed button
+        gbtn.textContent = armed ? 'DISARM SYSTEM' : 'ARM SYSTEM';
+        gbtn.className = armed ? 'arm-btn disarm' : 'arm-btn save';
+        
+        // Update status indicator
+        armedIndicator.className = armed ? 'status-indicator status-armed' : 'status-indicator status-disarmed';
+        systemStatusText.textContent = armed ? 'ARMED' : 'DISARMED';
+        systemStatusText.style.color = armed ? '#e74c3c' : '#27ae60'; 
+        modeDisplay.textContent = mode === 'home' ? 'Home' : 'Away';
+        modeDisplay.style.fontWeight = 'bold';
+        systemStatusText.textContent = armed ? 'System Armed' : 'System Disarmed';
+    
+        // Render zones
+        zonesEl.innerHTML = '';
+        zones.forEach((tripped, i) => {
+            const zoneEl = document.createElement('div');
+            zoneEl.className = 'zone ' + 
+                (zoneArmed[i] ? (tripped ? 'tripped' : 'ok') : 'disarmed');
+    
+            zoneEl.innerHTML = `
+                <h3>${zoneLabels[i]}</h3>
+                <div class="zone-status">${tripped ? 'TRIPPED' : 'SECURE'}</div>
+                <button class="arm-btn ${zoneArmed[i] ? 'disarm' : 'save'}">
+                    ${zoneArmed[i] ? 'Disarm Zone' : 'Arm Zone'}
+                </button>
+            `;
+    
+            zoneEl.querySelector('button').addEventListener('click', () => toggleZone(i));
+            zonesEl.appendChild(zoneEl);
+        });
+    }
+    
+    function renderOptions(){
+        const labelTextarea = document.getElementById('lab');
+        if (document.activeElement !== labelTextarea) {
+            labelTextarea.value = zoneLabels.join('\n');
+        }
+    
+        const dingListEl = document.getElementById('ding-zones-list');
+        dingListEl.innerHTML = '';
+    
+        zoneLabels.forEach((label, i) => {
+            const zoneItem = document.createElement('div');
+            zoneItem.className = 'zone-item';
+            zoneItem.innerHTML = `
+                <input type="checkbox" id="ding-zone-${i}" 
+                    ${zoneDingUnarmed.includes(i) ? 'checked' : ''}
+                    value="${i}">
+                <label for="ding-zone-${i}">${label}</label>
+            `;
+            dingListEl.appendChild(zoneItem);
+        });
+    }
+    
+    function renderModes(){
+        // Update mode options
+        document.getElementById('homeModeOption').classList.toggle('active', mode === 'home');
+        document.getElementById('awayModeOption').classList.toggle('active', mode === 'away');
+    
+        // Render mode zones table
+        const tableBody = document.getElementById('mode-zones-table');
+        tableBody.innerHTML = '';
+    
+        zoneLabels.forEach((label, i) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${label}</td>
+                <td>
+                    <label>
+                        <input type="checkbox" id="home-zone-${i}" 
+                            ${homeModeZones.includes(i) ? 'checked' : ''}
+                            value="${i}">
+                        Enable
+                    </label>
+                </td>
+                <td>
+                    <label>
+                        <input type="checkbox" id="away-zone-${i}" 
+                            ${awayModeZones.includes(i) ? 'checked' : ''}
+                            value="${i}">
+                        Enable
+                    </label>
+                </td>
+            `;
+            
+            // Add focus/blur event listeners to prevent refresh while interacting
+            const homeCheckbox = row.querySelector(`#home-zone-${i}`);
+            const awayCheckbox = row.querySelector(`#away-zone-${i}`);
+            
+            homeCheckbox.addEventListener('focus', () => {
+                isModeInputFocused = true;
+            });
+            awayCheckbox.addEventListener('focus', () => {
+                isModeInputFocused = true;
+            });
+            
+            homeCheckbox.addEventListener('blur', () => {
+                isModeInputFocused = false;
+            });
+            awayCheckbox.addEventListener('blur', () => {
+                isModeInputFocused = false;
+            });
+            
+            tableBody.appendChild(row);
+        });
+    }
+    
+    function renderSchedules(){
+        const scheduleBody = document.getElementById('sched');
+        scheduleBody.innerHTML = '';
+    
+        // Handle case where schedules might be undefined
+        if (!schedules || !Array.isArray(schedules)) return;
+        
+        schedules.forEach(s => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${s.action === 'arm' ? 'Arm' : 'Disarm'}</td>
+                <td>${s.time}</td>
+                <td>${s.repeat ? 'Yes' : 'No'}</td>
+                <td><button onclick="delSched(${s.id})">Delete</button></td>
+            `;
+            scheduleBody.appendChild(row);
+        });
+    }
+    
+    function fillPins(){
+        const pinListBody = document.getElementById('plist');
+        pinListBody.innerHTML = '';
+    
+        zoneLabels.forEach((label, i) => {
+            const row = document.createElement('tr');
+            // Use string index to get the pin
+            const currentPin = pinLayout[i.toString()] || 0;
+            row.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${label}</td>
+                <td><input type="number" class="pin-input" id="pin-${i}" value="${currentPin}" min="0"></td>
+            `;
+            
+            // Add focus/blur event listeners
+            const input = row.querySelector('input');
+            input.addEventListener('focus', () => {
+                isPinInputFocused = true;
+            });
+            input.addEventListener('blur', () => {
+                isPinInputFocused = false;
+            });
+            
+            pinListBody.appendChild(row);
+        });
+    }
+    
+    async function toggleZone(i){
+        await fetch('/api/zone_arm', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({index: i, armed: !zoneArmed[i]})
+        });
+        fetchAll();
+    }
+    
+    gbtn.addEventListener('click', async () => {
+        showLoading();
+        try {
+            await fetch('/api/arm', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({armed: !armed})
+            });
+            await fetchAll();
+        } finally {
+            hideLoading();
+        }
+    });
+    
+    async function saveLabels(){
+        const newLabels = document.getElementById('lab').value.split('\n')
+            .map(label => label.trim())
+            .filter(label => label !== '');
+        
+        if (newLabels.length === 0) {
+            alert('Please enter at least one label.');
+            return;
         }
         
-        // Toggle mute
-        function toggleMute() {
-            if (alarmAudio.muted) {
-                alarmAudio.muted = false;
-                muteBtn.innerHTML = '<i>🔇</i> Mute';
-            } else {
-                alarmAudio.muted = true;
-                muteBtn.innerHTML = '<i>🔊</i> Unmute';
+        showLoading();
+        try {
+            const response = await fetch('/api/set_labels', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({labels: newLabels})
+            });
+            
+            if (!response.ok) {
+                throw new Error('Labels saved!');
+            }
+            
+            const result = await response.json();
+            zoneLabels = newLabels;
+            homeModeZones = result.home_mode_zones;
+            awayModeZones = result.away_mode_zones;
+            pinLayout = result.pin_layout;
+            
+            render();
+            renderOptions();
+            renderModes();
+            renderSchedules();
+            fillPins();
+            
+            alert('Zone labels saved successfully!');
+        } catch (error) {
+            console.error('Error saving labels:', error);
+            alert('Labels saved!'); 
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function saveDingZones(){
+        const dingZones = [];
+        document.querySelectorAll('#ding-zones-list input[type="checkbox"]').forEach(cb => {
+            if (cb.checked) dingZones.push(parseInt(cb.value));
+        });
+    
+        showLoading();
+        try {
+            await fetch('/api/set_ding_zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ding_zones: dingZones})
+            });
+            alert('Ding zones saved!');
+            await fetchAll();
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function setMode(newMode){
+        showLoading();
+        try {
+            await fetch('/api/set_mode', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mode: newMode})
+            });
+            await fetchAll();
+        } finally {
+            hideLoading();
+        }
+    }
+    
+    async function saveHomeAwayZones(){
+        const homeZones = [];
+        const awayZones = [];
+        
+        // Collect selections from the table
+        for (let i = 0; i < zoneLabels.length; i++) {
+            const homeCheckbox = document.getElementById(`home-zone-${i}`);
+            const awayCheckbox = document.getElementById(`away-zone-${i}`);
+            
+            if (homeCheckbox && homeCheckbox.checked) {
+                homeZones.push(i);
+            }
+            if (awayCheckbox && awayCheckbox.checked) {
+                awayZones.push(i);
             }
         }
-        
-        // Test alarm sound
-        function testAlarm() {
-            playAlarm();
-            setTimeout(stopAlarm, 2000);
+    
+        showLoading();
+        try {
+            await fetch('/api/set_mode_zones', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({home: homeZones, away: awayZones})
+            });
+            alert('Mode configurations saved!');
+            await fetchAll();
+        } finally {
+            hideLoading();
         }
-        
-        // Show modal
-        function showModal() {
-            disarmModal.style.display = 'flex';
+    }
+    
+    async function addSched(){
+        const action = document.getElementById('sact').value;
+        const time = document.getElementById('stime').value;
+        const repeat = document.getElementById('srep').checked;
+    
+        if (!time) {
+            alert('Please enter a time for the schedule.');
+            return;
         }
-        
-        // Close modal
-        function closeModal() {
-            disarmModal.style.display = 'none';
+    
+        showLoading();
+        try {
+            await fetch('/api/add_schedule', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    action: action,
+                    time: time,
+                    repeat: repeat
+                })
+            });
+            await fetchAll();
+        } finally {
+            hideLoading();
         }
-        
-        // Update UI with current status
-        function updateStatusDisplay() {
-            // Update armed button
-            armButton.textContent = systemArmed ? 'DISARM SYSTEM' : 'ARM SYSTEM';
-            armButton.className = systemArmed ? 'arm-btn disarm' : 'arm-btn save';
-            
-            // Update status indicator
-            armedIndicator.className = systemArmed ? 'status-indicator status-armed' : 'status-indicator status-disarmed';
-            systemStatusText.textContent = systemArmed ? 'ARMED' : 'DISARMED';
-            systemStatusText.style.color = systemArmed ? '#e74c3c' : '#27ae60';
-            
-            // Update mode display
-            modeDisplay.textContent = currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
-            
-            // Update alarm status
-            alarmStatusEl.textContent = alarmActive ? 'ACTIVE' : 'INACTIVE';
-            alarmStatusEl.style.color = alarmActive ? '#e74c3c' : '#27ae60';
+    }
+    
+    async function delSched(id){
+        if (!confirm('Are you sure you want to delete this schedule?')) return;
+    
+        showLoading();
+        try {
+            await fetch('/api/delete_schedule', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: id})
+            });
+            await fetchAll();
+        } finally {
+            hideLoading();
         }
+    }
+    
+    async function savePinLayout(){
+        // Create an object with string keys for zone indices
+        const newPinLayout = {};
         
-        // Update last updated time
-        function updateLastUpdated() {
-            const now = new Date();
-            lastUpdatedEl.textContent = now.toLocaleTimeString();
+        for (let i = 0; i < zoneLabels.length; i++) {
+            const input = document.getElementById(`pin-${i}`);
+            if (input) {
+                const pinValue = parseInt(input.value) || 0;
+                if (pinValue < 0) {
+                    alert(`Invalid pin value for zone ${i+1}. Must be a positive number.`);
+                    return;
+                }
+                // Use string key (important for backend)
+                newPinLayout[i.toString()] = pinValue;
+            }
         }
-        
-        // Show selected section
-        function showSection(sectionId) {
-            // Hide all sections
-            document.querySelectorAll('.card').forEach(card => {
-                card.style.display = 'none';
+    
+        showLoading();
+        try {
+            const response = await fetch('/api/set_pin_layout', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(newPinLayout)
             });
             
-            // Show selected section
-            document.getElementById(sectionId).style.display = 'block';
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save pin layout');
+            }
             
-            // Update active nav button
-            document.querySelectorAll('nav button').forEach(button => {
-                button.classList.remove('active');
-            });
-            event.target.classList.add('active');
+            await fetchAll();
+            alert('Pin layout saved successfully!');
+        } catch (error) {
+            console.error('Error saving pin layout:', error);
+            alert(`Error: ${error.message}`);
+        } finally {
+            hideLoading();
         }
-        
-        // Initialize when page loads
-        window.onload = initSystem;
-        
-        // Update last updated time every minute
-        setInterval(updateLastUpdated, 60000);
+    }
+    
+    // Initialize
+    show('status');
+    pollInterval = setInterval(fetchAll, 1000);
+    fetchAll();
+    // Global error handler
+    window.addEventListener('error', (event) => {
+        console.error('Critical Error:', event.message);
+        alert('A critical error has occurred. Please Manually reboot the system.');
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        console.error('Critical Error (Unhandled Promise Rejection):', event.reason);
+        alert('A critical error has occurred. Please Manually reboot the system.');
+
+    });
+    
     </script>
+
 </body>
 </html>
