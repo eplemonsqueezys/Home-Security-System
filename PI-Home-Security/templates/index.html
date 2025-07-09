@@ -101,6 +101,15 @@ nav button:hover, nav button.active {
     height: 5px;
 }
 
+#alarmPanel {
+    animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+    from { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+    to { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
+}
+
 .ok:before { background: var(--success); }
 .tripped:before { background: var(--danger); }
 .disarmed:before { background: var(--warning); }
