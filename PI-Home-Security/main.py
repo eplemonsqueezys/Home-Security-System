@@ -12,7 +12,6 @@ import sys
 
 # --- Update system packages ---
 try:
-    time.sleep(5)
     # Check for internet connectivity
     internet_check = subprocess.run(["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     if internet_check.returncode != 0:
