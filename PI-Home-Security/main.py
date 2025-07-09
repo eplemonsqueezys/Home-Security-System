@@ -100,7 +100,7 @@ alarm_triggered = False
 ding_triggered = False
 last_ding_time = 0
 DING_COOLDOWN = 5  # seconds between dings 
-alarm_latched = False
+alarm_latched = False  # Tracks if alarm should continue until disarm
 
 # --- GPIO Initialization ---
 GPIO.setmode(GPIO.BCM)
@@ -145,7 +145,7 @@ def setup_relay_pins():
                 GPIO.output(pin, GPIO.LOW)
                 logger.info(f"GPIO: Setup output pin {pin} to LOW")
             except Exception as e:
-                logger.error(f"[GPIO OUTPUT ERROR] Relay pin {pin}: {e}")
+                logger.error(f"[GPIO OUTPUT ERROR] Relay pin {p}: {e}")
 
 # --- Configuration Management ---
 def save_config():
@@ -187,6 +187,7 @@ def load_config():
         schedule_id_counter = 0
         mode = "away"
         armed = False
+        alarm_latched = False
         pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
         setup_zone_pins(pins)
         save_config()
@@ -244,6 +245,7 @@ def load_config():
         schedule_id_counter = 0
         mode = "away"
         armed = False
+        alarm_latched = False
         pins = [pin_layout[str(i)] for i in range(len(zone_labels))]
         setup_zone_pins(pins)
         save_config()
@@ -279,39 +281,22 @@ def alarm_watcher():
         try:
             current_triggered_by_armed_zone = False
             current_relay_output_state = GPIO.LOW
-            if armed and current_triggered_by_armed_zone:
-                 alarm_latched = True
-            if alarm_latched and armed:
-                if not alarm_triggered:
-                    alarm_triggered = True
-                    try:
-                        with open("static/alarm.flag", "w") as f: 
-                            f.write("1")
-                        logger.info("Alarm flag set (latched).")
-                    except IOError as e:
-                        logger.error(f"[ALARM FLAG ERROR] Could not write static/alarm.flag: {e}")
-                elif alarm_triggered:
-                    alarm_triggered = False
-                    try:
-                        if os.path.exists("static/alarm.flag"):
-                            os.remove("static/alarm.flag")
-                    except Exception as e:
-                        logger.error(f"Error clearing alarm flag: {e}")
-
 
             with lock:
                 # Check if any armed zone is tripped
                 for i, tripped in enumerate(zone_state):
                     if i < len(zone_armed) and zone_armed[i] and tripped:
                         current_triggered_by_armed_zone = True
+                        # Set alarm latch when armed zone is tripped
+                        alarm_latched = True
                         break
 
                 # Set relay state based on armed status and zone trips
-                current_relay_output_state = GPIO.HIGH if (armed and current_triggered_by_armed_zone) else GPIO.LOW
+                current_relay_output_state = GPIO.HIGH if (armed and alarm_latched) else GPIO.LOW
 
                 if current_relay_output_state != last_relay_state:
                     action = "ACTIVATING" if current_relay_output_state == GPIO.HIGH else "DEACTIVATING"
-                    logger.info(f"Alarm Relays: {action} (System Armed: {armed}, Armed Zone Tripped: {current_triggered_by_armed_zone})")
+                    logger.info(f"Alarm Relays: {action} (System Armed: {armed}, Alarm Latched: {alarm_latched})")
                     for p in RELAY_PINS:
                         try:
                             GPIO.output(p, current_relay_output_state)
@@ -320,14 +305,14 @@ def alarm_watcher():
                             logger.error(f"ERROR: Could not control relay pin {p}: {e}")
                     last_relay_state = current_relay_output_state
 
-                # Handle alarm flag - only set if system is armed and zone is tripped
-                if armed and current_triggered_by_armed_zone:
+                # Handle alarm flag based on latch status
+                if alarm_latched and armed:
                     if not alarm_triggered:
                         alarm_triggered = True
                         try:
                             with open("static/alarm.flag", "w") as f: 
                                 f.write("1")
-                            logger.info("Alarm flag set for armed zone tripped.")
+                            logger.info("Alarm flag set (latched).")
                         except IOError as e:
                             logger.error(f"[ALARM FLAG ERROR] Could not write static/alarm.flag: {e}")
                 elif alarm_triggered:
@@ -424,15 +409,6 @@ threading.Thread(target=schedule_runner, daemon=True).start()
 def index():
     return render_template('index.html')
 
-@app.route('/api/clear_alarm_latch', methods=['POST'])
-def api_clear_alarm_latch():
-    global alarm_latched
-    with lock:
-        alarm_latched = False
-        logger.info("Alarm latch cleared.")
-    return ('', 204)
-
-
 @app.route('/api/zone_status')
 def zone_status():
     with lock:
@@ -443,7 +419,7 @@ def zone_status():
             'zone_armed': zone_armed,
             'zone_labels': zone_labels,
             'pin_layout': serializable_pin_layout,
-            'schedules': schedules,  # Added schedules to response
+            'schedules': schedules,
             'mode': mode,
             'home_mode_zones': home_mode_zones,
             'away_mode_zones': away_mode_zones,
@@ -462,10 +438,18 @@ def api_arm():
 
     with lock:
         armed = new_armed_state
-        if not armed:  # When disarming, clear the latch
+        if not armed:  # Clear latch when system is disarmed
             alarm_latched = False
         save_config()
         logger.info(f"System {'ARMED' if armed else 'DISARMED'} via API.")
+    return ('', 204)
+
+@app.route('/api/clear_alarm_latch', methods=['POST'])
+def api_clear_alarm_latch():
+    global alarm_latched
+    with lock:
+        alarm_latched = False
+        logger.info("Alarm latch cleared.")
     return ('', 204)
 
 @app.route('/api/zone_arm', methods=['POST'])
