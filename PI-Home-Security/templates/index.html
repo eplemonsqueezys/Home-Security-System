@@ -101,15 +101,6 @@ nav button:hover, nav button.active {
     height: 5px;
 }
 
-#alarmPanel {
-    animation: pulse 1s infinite alternate;
-}
-
-@keyframes pulse {
-    from { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
-    to { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
-}
-
 .ok:before { background: var(--success); }
 .tripped:before { background: var(--danger); }
 .disarmed:before { background: var(--warning); }
@@ -332,14 +323,65 @@ tr:nth-child(even) {
     display: flex;
     align-items: center;
 }
+
+/* ALARM PANEL STYLES */
+#alarmPanel {
+    display: none;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #e74c3c;
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 2000;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    animation: pulse 1s infinite alternate;
+    max-width: 300px;
+}
+
+@keyframes pulse {
+    from { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.7); }
+    to { box-shadow: 0 0 0 15px rgba(231, 76, 60, 0); }
+}
+
+#alarmPanel h3 {
+    margin-top: 0;
+    font-size: 1.4rem;
+}
+
+#stopAlarmBtn {
+    background: white;
+    color: #e74c3c;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    width: 100%;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+}
+
+#stopAlarmBtn:hover {
+    background: #f8f9fa;
+    transform: scale(1.03);
+}
 </style>
 </head>
 <body>
 
+<!-- Alarm Panel -->
+<div id="alarmPanel">
+    <h3>ALARM TRIGGERED!</h3>
+    <p>System is armed and zones are tripped</p>
+    <button id="stopAlarmBtn">DISARM AND SILENCE ALARM</button>
+</div>
+
 <div id="loadingIndicator">
     <h2>Processing Changes...</h2>
 </div>
-
 
 <header><h1>Alarm Dashboard</h1></header>
 <nav>
@@ -349,15 +391,6 @@ tr:nth-child(even) {
     <button onclick="show('schedules')">Schedules</button>
     <button onclick="show('pinlayout')">Pin Layout</button>
 </nav>
-
-<!-- Add to HTML body -->
-<div id="alarmPanel" style="display:none; position:fixed; top:20px; right:20px; background:#e74c3c; color:white; padding:20px; border-radius:8px; z-index:2000; box-shadow:0 5px 15px rgba(0,0,0,0.5);">
-    <h3 style="margin-top:0;">ALARM TRIGGERED!</h3>
-    <p>System is armed and zones are tripped</p>
-    <button id="stopAlarmBtn" style="background:white; color:#e74c3c; border:none; padding:10px 20px; border-radius:4px; font-weight:bold; cursor:pointer; margin-top:10px;">
-        DISARM AND SILENCE ALARM
-    </button>
-</div>
 
 <div class="content">
     <div id="status">
@@ -496,8 +529,6 @@ tr:nth-child(even) {
     let isProcessing = false;
     let isPinInputFocused = false;
     let isModeInputFocused = false;
-    let alarmPanel = document.getElementById('alarmPanel');
-    let stopAlarmBtn = document.getElementById('stopAlarmBtn');
     
     // Create audio elements
     const alarmAudio = new Audio('/static/alarm.mp3');
@@ -513,6 +544,8 @@ tr:nth-child(even) {
     const lastUpdatedEl = document.getElementById('lastUpdated');
     const muteBtn = document.getElementById('muteBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
+    const alarmPanel = document.getElementById('alarmPanel');
+    const stopAlarmBtn = document.getElementById('stopAlarmBtn');
     
     // Test buttons
     document.getElementById('testAlarmBtn').addEventListener('click', () => {
@@ -527,6 +560,27 @@ tr:nth-child(even) {
             dingAudio.play().catch(e => console.error("Ding test error:", e));
         }
     });
+    
+    // Stop alarm button
+    stopAlarmBtn.addEventListener('click', async () => {
+        showLoading();
+        try {
+            // Disarm system
+            await fetch('/api/arm', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({armed: false})
+            });
+            
+            // Clear alarm latch
+            await fetch('/api/clear_alarm_latch', { method: 'POST' });
+            
+            await fetchAll();
+        } finally {
+            hideLoading();
+        }
+    });
+    
     // Update system button
     function updatesystem() {
         if (isProcessing) return;
@@ -616,57 +670,35 @@ tr:nth-child(even) {
             const alarmRes = await fetch('/static/alarm.flag');
             const alarmFlag = (await alarmRes.text()).trim() === '1';
     
-            
             // Check ding flag
             const dingRes = await fetch('/static/ding.flag');
             const dingFlag = (await dingRes.text()).trim() === '1';
     
-            if (audioEnabled) {
-                // Handle alarm sound - only play if system is armed and alarm flag is set
-                if (alarmFlag && armed) {
-            alarmPanel.style.display = 'block';
-            if (audioEnabled) {
-                try {
-                    await alarmAudio.play();
-                } catch(e) {
-                    console.error("Alarm play error:", e);
+            // Handle alarm panel visibility
+            if (alarmFlag && armed) {
+                alarmPanel.style.display = 'block';
+                if (audioEnabled) {
+                    try {
+                        await alarmAudio.play();
+                    } catch(e) {
+                        console.error("Alarm play error:", e);
+                        // Try again after a short delay
+                        setTimeout(() => alarmAudio.play().catch(e => console.error("Retry alarm play error:", e)), 1000);
+                    }
                 }
-            }
-        } else {
-            alarmPanel.style.display = 'none';
-            alarmAudio.pause();
-            alarmAudio.currentTime = 0;
-        }
-        stopAlarmBtn.addEventListener('click', async () => {
-    showLoading();
-    try {
-        // Disarm system
-        await fetch('/api/arm', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({armed: false})
-        });
-        
-        // Clear alarm latch
-        await fetch('/api/clear_alarm_latch', { method: 'POST' });
-        
-        await fetchAll();
-    } finally {
-        hideLoading();
-    }
-});
-    
-                // Handle doorbell sound
-                if (dingFlag) {
-                    dingAudio.play().catch(e => console.error("Ding play error:", e));
-                    // Clear ding flag after playing
-                    setTimeout(() => fetch('/api/clear_ding'), 1000);
-                }
-
             } else {
-                // Ensure sounds are stopped if audio is muted
+                alarmPanel.style.display = 'none';
                 alarmAudio.pause();
-                dingAudio.pause();
+                alarmAudio.currentTime = 0;
+            }
+    
+            // Handle doorbell sound
+            if (dingFlag) {
+                if (audioEnabled) {
+                    dingAudio.play().catch(e => console.error("Ding play error:", e));
+                }
+                // Clear ding flag after playing
+                setTimeout(() => fetch('/api/clear_ding'), 1000);
             }
     
         } catch (e) {
