@@ -17,13 +17,8 @@ try:
     if internet_check.returncode != 0:
         print("No internet connection. Skipping system update.")
     else:
-        updateres = subprocess.run(["sudo", "apt-get", "update", "-y"], check=True)
-        print(f"Update result: {updateres.returncode}")
-        updateres = subprocess.run(["sudo", "apt-get", "upgrade", "-y"], check=True)
-        print(f"Update result: {updateres.returncode}")
         updateres = subprocess.run(["git", "pull"], check=True)
         print(f"Update result: {updateres.returncode}")
-        subprocess.run(["pip3", "install", "-r", "requirements", "--break-system-packages"], check=True)
 
 except subprocess.CalledProcessError as e:
     print(f"Update failed: {e}. Restarting system!")
