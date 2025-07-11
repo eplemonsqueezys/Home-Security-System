@@ -10,21 +10,6 @@ import datetime
 import subprocess
 import sys
 
-# --- Update system packages ---
-try:
-    # Check for internet connectivity
-    internet_check = subprocess.run(["ping", "-c", "1", "8.8.8.8"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if internet_check.returncode != 0:
-        print("No internet connection. Skipping system update.")
-    else:
-        updateres = subprocess.run(["git", "pull"], check=True)
-        print(f"Update result: {updateres.returncode}")
-
-except subprocess.CalledProcessError as e:
-    print(f"Update failed: {e}. Restarting system!")
-    os.execv(sys.executable, ['python3'] + sys.argv)
-
-# --- End of system update ---
 
 
 # Configure logging
